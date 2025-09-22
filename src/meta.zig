@@ -8,18 +8,20 @@ pub inline fn eql(lhs: []const u8, rhs: []const u8) bool {
 	return std.mem.eql(u8, lhs, rhs);
 }
 
+pub fn eql_concat(lhs: []const u8, rhs: []const []const u8) bool {
+	var rhs_len: usize = 0;
+	inline for (rhs) |r| {
+		if (!eql(lhs[rhs_len..r.len], r)) return false;
+		rhs_len += r.len;
+	}
+	return lhs.len == rhs_len;
+}
+
+pub inline fn startswith(lhs: []const u8, rhs: []const u8) bool {
+	return std.mem.startsWith(u8, lhs, rhs);
+}
+
 pub inline fn fail(comptime fmt: []const u8, args: anytype) void {
 	// TODO
 	std.debug.print(fmt ++ "\n", args);
-}
-
-pub fn call_no_arg_action(allocator: Allocator, config: *Parsed(Config)) !void {
-	var argv = try std.ArrayList([]const u8).initCapacity(allocator, 2);
-	defer argv.deinit(allocator);
-
-	var it = std.mem.tokenizeScalar(u8, config.value.no_arg_action, ' ');
-	while (it.next()) |arg| try argv.append(allocator, arg);
-
-	var child = std.process.Child.init(argv.items, allocator);
-	_ = try child.spawnAndWait();
 }
