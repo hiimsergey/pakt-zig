@@ -16,15 +16,17 @@ pub const Transaction = struct {
 		config: *Config,
 		cmd: ArrayList([]const u8)
 	) !Transaction {
-		var result = Transaction{ .data = ArrayList(PackageData).initCapacity(allocator, 2) };
+		var result = Transaction{
+			.data = try ArrayList(PackageData).initCapacity(allocator, 2)
+		};
 
 		var no_args = true;
 		var expecting_comment = false;
 
-		var pkgs = ArrayList([]const u8).initCapacity(allocator, 2);
-		defer pkgs.deinit();
+		var pkgs = try ArrayList([]const u8).initCapacity(allocator, 2);
+		defer pkgs.deinit(allocator);
 
-		var curpkg = PackageData.init(allocator);
+		var curpkg = try PackageData.init(allocator);
 		defer curpkg.deinit();
 
 		while (args.next()) |arg| {
@@ -34,7 +36,7 @@ pub const Transaction = struct {
 				curpkg.comment = arg;
 				expecting_comment = false;
 			} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
-				try categories.list_all(curpkg.categories, config.cat_path);
+				try categories.list_all(allocator, curpkg.categories, config.cat_path);
 			} else if (meta.startswith(arg, config.cat_syntax)) {
 				try curpkg.categories.append(allocator, arg[config.cat_syntax.len..]);
 				// TODO
@@ -96,7 +98,14 @@ pub const Transaction = struct {
 		const catfile = try std.fs.openFileAbsolute(catfile_path, .{ .mode = .read_write });
 		defer catfile.close();
 
-		// TODO NOW
+		var reader = catfile.reader();
+		std.debug.print("\n\n", .{});
+		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+			std.debug.print("line: {s}\n", .{line});
+			// TODO NOW
+			_ = name;
+			_ = comment;
+		}
 	}
 };
 
@@ -106,9 +115,11 @@ const PackageData = struct {
 	comment: ?[]const u8,
 
 	pub fn init(allocator: Allocator) !PackageData {
-		var result = undefined;
-		try result.categories.initCapacity(allocator, 2);
-		return result;
+		return .{
+			.name = undefined,
+			.categories = try ArrayList([]const u8).initCapacity(allocator, 2),
+			.comment = null
+		};
 	}
 
 	pub fn deinit(self: *PackageData, allocator: Allocator) void {

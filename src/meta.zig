@@ -10,7 +10,7 @@ pub inline fn eql(lhs: []const u8, rhs: []const u8) bool {
 
 pub fn eql_concat(lhs: []const u8, rhs: []const []const u8) bool {
 	var rhs_len: usize = 0;
-	inline for (rhs) |r| {
+	for (rhs) |r| {
 		if (!eql(lhs[rhs_len..r.len], r)) return false;
 		rhs_len += r.len;
 	}

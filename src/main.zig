@@ -11,10 +11,12 @@ const Parsed = std.json.Parsed;
 
 inline fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
-	defer cmd.deinit();
-	try cmd.appendSlice(allocator, &.{ config.package_manager, config.install_arg });
+	defer cmd.deinit(allocator);
+	cmd.appendSlice(allocator, &.{ config.package_manager, config.install_arg }) catch
+		return 1;
 
-	const transaction = logic.Transaction.init(allocator, args, config, cmd) catch return 1;
+	const transaction = logic.Transaction.init(allocator, args, config, cmd) catch
+		return 1;
 	defer transaction.deinit(allocator);
 
 	var child = std.process.Child.init(cmd.items, allocator);
