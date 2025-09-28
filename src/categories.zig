@@ -14,6 +14,5 @@ pub fn list_all(
 	defer cat_dir.close();
 
 	var it = cat_dir.iterate();
-	// TODO NOW DEBUG this line. idk what to do tbh
 	while (try it.next()) |entry| try cat_pool.append(allocator, entry.name);
 }

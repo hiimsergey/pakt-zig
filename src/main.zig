@@ -1,5 +1,5 @@
 const std = @import("std");
-const logic = @import("logic.zig");
+const Transaction = @import("Transaction.zig");
 const meta = @import("meta.zig");
 
 const Allocator = std.mem.Allocator;
@@ -15,19 +15,22 @@ inline fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 
 	cmd.appendSlice(allocator, &.{ config.package_manager, config.install_arg }) catch
 		return 1;
 
-	var transaction = logic.Transaction.init(allocator, args, config, &cmd) catch
+	var transaction = Transaction.init(allocator, args, config, &cmd) catch
 		return 1;
 	defer transaction.deinit(allocator);
 
 	var child = std.process.Child.init(cmd.items, allocator);
 	const term = child.spawnAndWait() catch return 1;
-	if (term.Signal != 0) {
-		meta.fail("Package manager operation failed, thus no categorizing happens.", .{});
+	if (term.Exited != 0) {
+		meta.fail(
+			"Package manager operation didn't succeed, thus no categorizing happens.",
+			.{}
+		);
 		return 1;
 	}
 
 	// The categorizing in question
-	transaction.write(allocator, config) catch return 1; // TODO
+	transaction.write(allocator, config) catch return 1;
 
 	return 0;
 }
@@ -115,8 +118,6 @@ pub fn main() u8 {
 		return 1;
 	};
 }
-
-// TODO HANDLE default cats
 
 // TODO FINAL TEST
 // json valid but incomplete
