@@ -6,7 +6,7 @@ const Allocator = std.mem.Allocator;
 const AllocatorWrapper = @import("allocator.zig").AllocatorWrapper;
 const ArrayList = std.ArrayList;
 const ArgIterator = std.process.ArgIterator;
-const Config = @import("config.zig").Config;
+const Config = @import("Config.zig");
 const Parsed = std.json.Parsed;
 
 inline fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
@@ -15,31 +15,82 @@ inline fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 
 	cmd.appendSlice(allocator, &.{ config.package_manager, config.install_arg }) catch
 		return 1;
 
-	const transaction = logic.Transaction.init(allocator, args, config, cmd) catch
+	var transaction = logic.Transaction.init(allocator, args, config, &cmd) catch
 		return 1;
 	defer transaction.deinit(allocator);
 
 	var child = std.process.Child.init(cmd.items, allocator);
-	const term = try child.spawnAndWait();
-	if (term.Signal != 0)
+	const term = child.spawnAndWait() catch return 1;
+	if (term.Signal != 0) {
 		meta.fail("Package manager operation failed, thus no categorizing happens.", .{});
+		return 1;
+	}
 
-	transaction.write(allocator, config); // TODO
+	// The categorizing in question
+	transaction.write(allocator, config) catch return 1; // TODO
 
-	return term.Signal;
+	return 0;
 }
 
-inline fn help() void {
-	std.debug.print("TODO help", .{});
+inline fn help(config_path: []const u8) void {
+	std.debug.print(
+\\pakt – a package manager wrapper with support for categorizing
+\\
+\\Usage:
+\\    pakt                                          perform a user-defined arbitrary action
+\\    pakt i(nstall)          (pkg [+cat ...])...   install packages
+\\    pakt u(ninstall)        (pkg [+cat ...])...   uninstall packages
+\\    pakt d(ry-)i(nstall)    (pkg [+cat ...])...   write packages into categories without
+\\                                                    installing them
+\\    pakt d(ry-)u(ninstall)  (pkg [+cat ...])...   remove packages from categories without
+\\                                                    uninstalling them
+\\    pakt s(ync-)i(nstall)   (file | +cat)...      install several packages from categories
+\\                                                    or arbitrary files
+\\    pakt s(ync-)u(ninstall) (file | +cat)...      uninstall several packages from categories
+\\                                                    or arbitary files
+\\    pakt l(ist)             ls-arg...             list all user-defined categories
+\\    pakt c(at)              (file | +cat)...      list all packages in the given categories
+\\    pakt f(ind)             pkg...                list categories the given packages are in
+\\    pakt e(dit)             (file | +cat)...      edit category or arbitary files manually
+\\    pakt p(urge)            +cat...               remove entire category files
+\\    pakt n(ative)           pm-arg...             perform a regular package manager operation
+\\    pakt h(elp)                                   print this message
+\\
+\\Configuration:
+\\    {s}
+\\
+\\About:
+\\    v1.1.3  GPL-3.0  https://github.com/hiimsergey/pakt-zig
+\\    Sergey Lavrent <https://github.com/hiimsergey>
+\\
+\\    Based on the pakt shell script:
+\\        https://github.com/mminl-de/pakt
+\\        Sergey Lavrent <https://github.com/hiimsergey>
+\\        MrMineDe <https://github.com/mrminede>
+\\
+	, .{config_path});
 }
 
 pub fn main() u8 {
 	var aw = AllocatorWrapper.init();
 	defer aw.deinit();
-
 	const allocator = aw.allocator();
 
-	var config: Parsed(Config) = Config.parse(allocator) catch return 1;
+	const config_path = Config.get_config_path(allocator) catch return 1;
+	defer allocator.free(config_path);
+
+	var config: Parsed(Config) = Config.parse(allocator, config_path) catch |err| {
+		switch (err) {
+			error.UnexpectedToken =>
+				meta.fail("Failed to parse config! Unexpected token!", .{}),
+			else => meta.fail(
+				\\Failed to parse config!
+				\\It was not a syntax error for sure but other than that idk what.
+				, .{}
+			)
+		}
+		return 1;
+	};
 	defer config.deinit();
 
 	var args = std.process.args();
@@ -54,7 +105,7 @@ pub fn main() u8 {
 	return if (eql(subcommand, "install") or eql(subcommand, "i"))
 		install(allocator, &config.value, &args)
 	else if (eql(subcommand, "help") or eql(subcommand, "h")) {
-		help();
+		help(config_path);
 		return 0;
 	} else {
 		meta.fail(
