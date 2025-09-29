@@ -163,11 +163,10 @@ fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !voi
 
 fn delete_package(pkg: []const u8, file: *std.fs.File) !void {
 	var wbuf: [1024]u8 = undefined;
-	var writer = file.writer(&wbuf);
-
-	// TODO NOW panic
 	var rbuf: [1024]u8 = undefined;
+	var writer = file.writer(&wbuf);
 	var reader = file.reader(&rbuf);
+
 	while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
 		const uncommented = std.mem.trim(u8, blk: {
 			const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
@@ -175,4 +174,7 @@ fn delete_package(pkg: []const u8, file: *std.fs.File) !void {
 		}, " ");
 		if (!meta.eql(uncommented, pkg)) _ = try writer.interface.print("{s}\n", .{line});
 	}
+
+	try writer.interface.flush();
+	try file.setEndPos(writer.pos);
 }
