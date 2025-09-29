@@ -1,13 +1,14 @@
 //! A struct containing a list of `PackageData`s describing an entire command's Pakt
 //! transaction and a pool of all chunks of category args.
+//! You could say this is the heart of transaction-specific arg parsing.
 
 const std = @import("std");
-const categories = @import("categories.zig");
 const meta = @import("meta.zig");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const ArgIterator = std.process.ArgIterator;
+const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
 
 /// An index based slice description over an unrelated array. Unlike regular slices,
@@ -36,6 +37,7 @@ cat_pool: ArrayList([]const u8),
 pub fn init(
 	allocator: Allocator,
 	args: *ArgIterator,
+	catman: *const Categories,
 	config: *Config,
 	cmd: *ArrayList([]const u8)
 ) !Self {
@@ -60,7 +62,8 @@ pub fn init(
 
 		// Wildcard token (like ++)
 		} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
-			try categories.list_all(allocator, &result.cat_pool, config);
+			try catman.append_all_cats(allocator, &result.cat_pool);
+			for (result.cat_pool.items) |cat| std.debug.print("TODO registered cat '{s}'\n", .{cat});
 			cats.to = result.cat_pool.items.len;
 
 		// Category token (like +)
@@ -104,28 +107,30 @@ pub fn init(
 
 pub fn deinit(self: *Self, allocator: Allocator) void {
 	self.data.deinit(allocator);
+	for (self.cat_pool.items) |cat| allocator.free(cat);
 	self.cat_pool.deinit(allocator);
 }
 
-pub fn write(self: *Self, allocator: Allocator, config: *Config) !void {
+pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
-			var catfile = try categories.open_catfile(allocator, cat, config);
+			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try write_package(pkgdata.name, &catfile, pkgdata.comment);
 		}
 		for (config.default_cats) |cat| {
-			var catfile = try categories.open_catfile(allocator, cat, config);
+			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try write_package(pkgdata.name, &catfile, pkgdata.comment);
 		}
 	}
 }
 
-pub fn delete(self: *Self, allocator: Allocator, config: *Config) !void {
+pub fn delete(self: *Self, catman: *const Categories) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
-			var catfile = try categories.open_catfile(allocator, cat, config);
+			std.debug.print("TODO trying to open '{s}'\n", .{cat});
+			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			std.debug.print("TODO opened file {s}\n", .{cat});
 			try delete_package(pkgdata.name, &catfile);

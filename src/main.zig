@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 const AllocatorWrapper = @import("allocator.zig").AllocatorWrapper;
 const ArrayList = std.ArrayList;
 const ArgIterator = std.process.ArgIterator;
+const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
 const Parsed = std.json.Parsed;
 
@@ -18,7 +19,10 @@ fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	cmd.appendSlice(allocator, &.{config.package_manager, config.install_arg}) catch
 		return 1;
 
-	var transaction = Transaction.init(allocator, args, config, &cmd) catch
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var transaction = Transaction.init(allocator, args, &catman, config, &cmd) catch
 		return 1;
 	defer transaction.deinit(allocator);
 
@@ -33,7 +37,7 @@ fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	}
 
 	// The categorizing in question
-	transaction.write(allocator, config) catch return 1;
+	transaction.write(&catman, config) catch return 1;
 	return 0;
 }
 
@@ -43,7 +47,10 @@ fn uninstall(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	cmd.appendSlice(allocator, &.{config.package_manager, config.uninstall_arg}) catch
 		return 1;
 
-	var transaction = Transaction.init(allocator, args, config, &cmd) catch
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var transaction = Transaction.init(allocator, args, &catman, config, &cmd) catch
 		return 1;
 	defer transaction.deinit(allocator);
 
@@ -58,7 +65,7 @@ fn uninstall(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	}
 
 	// The decategorizing in question
-	transaction.delete(allocator, config) catch return 1;
+	transaction.delete(&catman) catch return 1;
 	return 0;
 }
 
@@ -109,7 +116,6 @@ pub fn main() u8 {
 	const config_path = Config.get_config_path(allocator) catch return 1;
 	defer allocator.free(config_path);
 
-	// TODO NOW dont errhandle twice
 	var config: Parsed(Config) = Config.parse(allocator, config_path) catch return 1;
 	defer config.deinit();
 

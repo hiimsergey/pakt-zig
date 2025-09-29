@@ -5,12 +5,12 @@ pub fn eql(lhs: []const u8, rhs: []const u8) bool {
 }
 
 pub fn eql_concat(lhs: []const u8, rhs: []const []const u8) bool {
-	var rhs_len: usize = 0;
+	var offset: usize = 0;
 	for (rhs) |r| {
-		if (!eql(lhs[rhs_len..r.len], r)) return false;
-		rhs_len += r.len;
+		if (!eql(lhs[offset..offset + r.len], r)) return false;
+		offset += r.len;
 	}
-	return lhs.len == rhs_len;
+	return lhs.len == offset;
 }
 
 pub fn startswith(lhs: []const u8, rhs: []const u8) bool {
