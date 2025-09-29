@@ -10,7 +10,16 @@ const ArrayList = std.ArrayList;
 const ArgIterator = std.process.ArgIterator;
 const Config = @import("Config.zig");
 
-const ISlice = struct { from: usize, to: usize };
+/// An index based slice description over an unrelated array. Unlike regular slices,
+/// it doesn't get invalidated if an `ArrayList` gets appended to.
+const ISlice = struct {
+	from: usize,
+	to: usize,
+
+	pub fn slice(self: *const ISlice, buf: anytype) @TypeOf(buf) {
+		return buf[self.from..self.to];
+	}
+};
 
 /// Description of a single package, the categories it goes into and its inline comment
 const PackageData = struct {
@@ -38,40 +47,47 @@ pub fn init(
 	var no_args = true;
 	var expecting_comment = false;
 
-	var pkgs = try ArrayList([]const u8).initCapacity(allocator, 2);
-	defer pkgs.deinit(allocator);
-
+	var pkgs = ISlice{ .from = 0, .to = 0 };
 	var cats = ISlice{ .from = 0, .to = 0 };
-	var comment: ?[]const u8 = null;
 
 	while (args.next()) |arg| {
 		no_args = false;
 
+		// Handle incoming comment
 		if (expecting_comment) {
-			comment = arg;
+			result.data.items[result.data.items.len - 1].comment = arg;
 			expecting_comment = false;
 
+		// Wildcard token (like ++)
 		} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
-			cats.from = result.cat_pool.items.len;
 			try categories.list_all(allocator, &result.cat_pool, config);
 			cats.to = result.cat_pool.items.len;
 
+		// Category token (like +)
 		} else if (meta.startswith(arg, config.cat_syntax)) {
 			try result.cat_pool.append(allocator, arg[config.cat_syntax.len..]);
 			cats.to += 1;
 
+		// Comment marker (:)
 		} else if (meta.eql(arg, ":")) {
 			expecting_comment = true;
 
+		// Non-Pakt flag
 		} else if (meta.startswith(arg, "-")) {
 			try cmd.append(allocator, arg);
 
+		// Probably a package
 		} else {
 			// A package comes after a category declaration, meaning we have
 			// to reset the temporary descriptors.
 			if (cats.to - cats.from > 0)
-				try result.update_temporary(allocator, &pkgs, &cats, &comment);
-			try pkgs.append(allocator, arg);
+				try result.update_temporary(&pkgs, &cats);
+			try result.data.append(allocator, .{
+				.name = arg,
+				.cats = undefined,
+				.comment = null
+			});
+			pkgs.to += 1;
 			try cmd.append(allocator, arg);
 		}
 	}
@@ -81,7 +97,7 @@ pub fn init(
 		return error.ExpectedArgs;
 	}
 
-	try result.update_temporary(allocator, &pkgs, &cats, &comment);
+	try result.update_temporary(&pkgs, &cats);
 	return result;
 }
 
@@ -92,63 +108,30 @@ pub fn deinit(self: *Self, allocator: Allocator) void {
 
 pub fn write(self: *Self, allocator: Allocator, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
-		std.debug.print("TODO pkg {s} with {d} categories\n", .{pkgdata.name, pkgdata.cats.to - pkgdata.cats.from});
-		for (self.cat_pool.items[pkgdata.cats.from..pkgdata.cats.to]) |cat|
-			try write_package(
-				allocator,
-				pkgdata.name, cat, pkgdata.comment,
-				config.cat_path
-			);
-		for (config.default_cats) |cat|
-			try write_package(
-				allocator,
-				pkgdata.name, cat, pkgdata.comment,
-				config.cat_path
-			);
+		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
+			var catfile = try categories.open_catfile(allocator, cat, config);
+			defer catfile.close();
+			try write_package(pkgdata.name, &catfile, pkgdata.comment);
+		}
+		for (config.default_cats) |cat| {
+			var catfile = try categories.open_catfile(allocator, cat, config);
+			defer catfile.close();
+			try write_package(pkgdata.name, &catfile, pkgdata.comment);
+		}
 	}
 }
 
-fn update_temporary(
-	self: *Self,
-	allocator: Allocator,
-	pkgs: *ArrayList([]const u8),
-	cats: *ISlice,
-	comment: *?[]const u8
-) !void {
-	for (pkgs.items) |pkg| try self.data.append(allocator, .{
-		.name = pkg,
-		.cats = cats.*,
-		.comment = null
-	});
-	self.data.items[self.data.items.len - 1].comment = comment.*;
-
-	pkgs.clearRetainingCapacity();
-	cats.* = .{ .from = 0, .to = 0 };
-	comment.* = null;
+fn update_temporary(self: *Self, pkgs: *ISlice, cats: *ISlice) !void {
+	for (pkgs.slice(self.data.items)) |*pkg| pkg.cats = cats.*;
+	pkgs.* = .{ .from = self.data.items.len, .to = 0 };
+	cats.* = .{ .from = self.cat_pool.items.len, .to = 0 };
 }
 
-fn write_package(
-	allocator: Allocator,
-	pkg: []const u8,
-	category: []const u8,
-	comment: ?[]const u8,
-	cat_path: []const u8
-) !void {
-	const catfile_path =
-		try std.mem.concat(allocator, u8, &.{ cat_path, "/", category });
-	defer allocator.free(catfile_path);
-
-	const catfile = try std.fs.createFileAbsolute(
-		catfile_path,
-		.{ .read = true, .truncate = false }
-	);
-	defer catfile.close();
-	std.debug.print("TODO We opened the file {s}!\n", .{catfile_path});
-
+fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !void {
 	var buf: [1024]u8 = undefined;
 
 	// Check if package already exists in a category file
-	var reader = catfile.reader(&buf);
+	var reader = file.reader(&buf);
 	while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
 		const uncommented = std.mem.trim(u8, blk: {
 			const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
@@ -159,14 +142,10 @@ fn write_package(
 	}
 
 	// Write package (with comment, if existing) into category file.
-	var writer = catfile.writer(&buf);
-	if (comment) |com| {
-		const content = try std.mem.concat(allocator, u8, &.{ pkg, " # ", com });
-		_ = try writer.interface.write(content);
-		allocator.free(content);
-	} else {
-		_ = try writer.interface.write(pkg);
-	}
+	var writer = file.writer(&buf);
+	try writer.seekTo(try file.getEndPos());
+	if (comment) |com| _ = try writer.interface.print("{s} # {s}\n", .{pkg, com})
+	else _ = try writer.interface.write(pkg);
 
 	try writer.interface.flush();
 }

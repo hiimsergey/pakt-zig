@@ -1,10 +1,6 @@
 const std = @import("std");
 
-const Allocator = std.mem.Allocator;
-const Config = @import("Config.zig");
-const Parsed = std.json.Parsed;
-
-pub inline fn eql(lhs: []const u8, rhs: []const u8) bool {
+pub fn eql(lhs: []const u8, rhs: []const u8) bool {
 	return std.mem.eql(u8, lhs, rhs);
 }
 
@@ -17,11 +13,11 @@ pub fn eql_concat(lhs: []const u8, rhs: []const []const u8) bool {
 	return lhs.len == rhs_len;
 }
 
-pub inline fn startswith(lhs: []const u8, rhs: []const u8) bool {
+pub fn startswith(lhs: []const u8, rhs: []const u8) bool {
 	return std.mem.startsWith(u8, lhs, rhs);
 }
 
-pub inline fn fail(comptime fmt: []const u8, args: anytype) void {
+pub fn fail(comptime fmt: []const u8, args: anytype) void {
 	// TODO
 	std.debug.print("\x1b[31m" ++ fmt ++ "\n", args);
 }

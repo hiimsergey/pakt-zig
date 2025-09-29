@@ -1,3 +1,6 @@
+// TODO FINAL TEST
+// json valid but incomplete
+
 const std = @import("std");
 const Transaction = @import("Transaction.zig");
 const meta = @import("meta.zig");
@@ -9,7 +12,7 @@ const ArgIterator = std.process.ArgIterator;
 const Config = @import("Config.zig");
 const Parsed = std.json.Parsed;
 
-inline fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
+fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
 	defer cmd.deinit(allocator);
 	cmd.appendSlice(allocator, &.{ config.package_manager, config.install_arg }) catch
@@ -35,7 +38,7 @@ inline fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 
 	return 0;
 }
 
-inline fn help(config_path: []const u8) void {
+fn help(config_path: []const u8) void {
 	std.debug.print(
 \\pakt – a package manager wrapper with support for categorizing
 \\
@@ -113,11 +116,8 @@ pub fn main() u8 {
 	} else {
 		meta.fail(
 			"Invalid subcommand {s}!\nSee 'pakt help' for available options!",
-			.{ subcommand }
+			.{subcommand}
 		);
 		return 1;
 	};
 }
-
-// TODO FINAL TEST
-// json valid but incomplete
