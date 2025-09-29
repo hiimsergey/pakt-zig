@@ -110,18 +110,7 @@ pub fn main() u8 {
 	defer allocator.free(config_path);
 
 	// TODO NOW dont errhandle twice
-	var config: Parsed(Config) = Config.parse(allocator, config_path) catch |err| {
-		switch (err) {
-			error.UnexpectedToken =>
-				meta.fail("Failed to parse config! Unexpected token!", .{}),
-			else => meta.fail(
-				\\Failed to parse config!
-				\\It was not a syntax error for sure but other than that idk what.
-				, .{}
-			)
-		}
-		return 1;
-	};
+	var config: Parsed(Config) = Config.parse(allocator, config_path) catch return 1;
 	defer config.deinit();
 
 	var args = std.process.args();

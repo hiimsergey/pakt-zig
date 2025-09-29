@@ -32,10 +32,21 @@ pub fn parse(allocator: Allocator, config_path: []const u8) !Parsed(Self) {
 	};
 	defer allocator.free(pakt_conf);
 
-	return try std.json.parseFromSlice(
+	return std.json.parseFromSlice(
 		Self,
 		allocator, pakt_conf, .{ .allocate = .alloc_always }
-	);
+	) catch |err| {
+		switch (err) {
+			error.UnexpectedToken =>
+				meta.fail("Failed to parse config! Unexpected token!", .{}),
+			else => meta.fail(
+				\\Failed to parse config!
+				\\It was not a syntax error for sure but other than that idk what.
+				, .{}
+			)
+		}
+		return err;
+	};
 }
 
 pub fn get_config_path(allocator: Allocator) ![]const u8 {
