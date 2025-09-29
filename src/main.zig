@@ -69,6 +69,18 @@ fn uninstall(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	return 0;
 }
 
+fn native(allocator: Allocator, config: *const Config, args: *ArgIterator) u8 {
+	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
+	defer cmd.deinit(allocator);
+
+	cmd.append(allocator, config.package_manager) catch return 1;
+	while (args.next()) |arg| cmd.append(allocator, arg) catch return 1;
+
+	var child = std.process.Child.init(cmd.items, allocator);
+	const term = child.spawnAndWait() catch return 1;
+	return term.Exited;
+}
+
 fn help(config_path: []const u8) void {
 	std.debug.print(
 \\pakt – a package manager wrapper with support for categorizing
@@ -134,6 +146,8 @@ pub fn main() u8 {
 		install(allocator, &config.value, &args)
 	else if (eql(subcommand, "uninstall") or eql(subcommand, "u"))
 		uninstall(allocator, &config.value, &args)
+	else if (eql(subcommand, "native") or eql(subcommand, "n"))
+		native(allocator, &config.value, &args)
 	else if (eql(subcommand, "help") or eql(subcommand, "h")) {
 		help(config_path);
 		return 0;
