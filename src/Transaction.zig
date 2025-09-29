@@ -63,7 +63,6 @@ pub fn init(
 		// Wildcard token (like ++)
 		} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
 			try catman.append_all_cats(allocator, &result.cat_pool);
-			for (result.cat_pool.items) |cat| std.debug.print("TODO registered cat '{s}'\n", .{cat});
 			cats.to = result.cat_pool.items.len;
 
 		// Category token (like +)
@@ -71,9 +70,8 @@ pub fn init(
 			try result.cat_pool.append(allocator, arg[config.cat_syntax.len..]);
 			cats.to += 1;
 
-		// Comment marker (:)
-			// TODO do something if no comment follows
-		} else if (meta.eql(arg, ":")) {
+		// Comment marker (like :)
+		} else if (meta.eql(arg, config.inline_comment_syntax)) {
 			expecting_comment = true;
 
 		// Non-Pakt flag
@@ -99,6 +97,13 @@ pub fn init(
 	if (no_args) {
 		meta.fail("Missing package names!\nSee 'pakt help' for correct usage!", .{});
 		return error.ExpectedArgs;
+	}
+	if (expecting_comment) {
+		meta.fail(
+			"Missing comment after the '{s}'!\nSee 'pakt help' for correct usage!",
+			.{config.inline_comment_syntax}
+		);
+		return error.ExpectedComment;
 	}
 
 	try result.update_temporary(&pkgs, &cats);
@@ -129,10 +134,8 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 pub fn delete(self: *Self, catman: *const Categories) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
-			std.debug.print("TODO trying to open '{s}'\n", .{cat});
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
-			std.debug.print("TODO opened file {s}\n", .{cat});
 			try delete_package(pkgdata.name, &catfile);
 		}
 	}

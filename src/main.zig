@@ -113,6 +113,8 @@ pub fn main() u8 {
 	defer aw.deinit();
 	const allocator = aw.allocator();
 
+	defer meta.flush();
+
 	const config_path = Config.get_config_path(allocator) catch return 1;
 	defer allocator.free(config_path);
 

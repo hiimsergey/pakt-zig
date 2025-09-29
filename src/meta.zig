@@ -17,7 +17,14 @@ pub fn startswith(lhs: []const u8, rhs: []const u8) bool {
 	return std.mem.startsWith(u8, lhs, rhs);
 }
 
+var stderr_buf: [1024]u8 = undefined;
+var stderr = std.fs.File.stderr().writer(&stderr_buf);
+
 pub fn fail(comptime fmt: []const u8, args: anytype) void {
-	// TODO
-	std.debug.print("\x1b[31m" ++ fmt ++ "\n", args);
+	stderr.interface.print("\x1b[31m" ++ fmt ++ "\n", args);
+}
+
+/// Flush stderr.
+pub fn flush() void {
+	stderr.interface.flush() catch {};
 }

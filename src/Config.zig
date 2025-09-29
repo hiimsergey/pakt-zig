@@ -13,6 +13,7 @@ package_manager: []const u8,
 install_arg: []const u8,
 uninstall_arg: []const u8,
 cat_syntax: []const u8,
+inline_comment_syntax: []const u8,
 no_arg_action: []const u8,
 default_cats: []const []const u8,
 remove_empty_cats: bool,
@@ -26,7 +27,7 @@ pub fn parse(allocator: Allocator, config_path: []const u8) !Parsed(Self) {
 		switch (err) {
 			std.fs.File.OpenError.FileNotFound =>
 				meta.fail("Config file at {s} not found!", .{config_path}),
-			else => std.debug.print("TODO otherwise {s}\n", .{@errorName(err)})
+			else => std.debug.print("Couldn't open config file!\n", .{})
 		}
 		return err;
 	};
