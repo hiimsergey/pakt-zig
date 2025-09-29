@@ -13,9 +13,9 @@ const Config = @import("Config.zig");
 const Parsed = std.json.Parsed;
 
 fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
-	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
+	var cmd = ArrayList([]const u8).initCapacity(allocator, 4) catch return 1;
 	defer cmd.deinit(allocator);
-	cmd.appendSlice(allocator, &.{ config.package_manager, config.install_arg }) catch
+	cmd.appendSlice(allocator, &.{config.package_manager, config.install_arg}) catch
 		return 1;
 
 	var transaction = Transaction.init(allocator, args, config, &cmd) catch
@@ -34,7 +34,31 @@ fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 
 	// The categorizing in question
 	transaction.write(allocator, config) catch return 1;
+	return 0;
+}
 
+fn uninstall(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
+	var cmd = ArrayList([]const u8).initCapacity(allocator, 4) catch return 1;
+	defer cmd.deinit(allocator);
+	cmd.appendSlice(allocator, &.{config.package_manager, config.uninstall_arg}) catch
+		return 1;
+
+	var transaction = Transaction.init(allocator, args, config, &cmd) catch
+		return 1;
+	defer transaction.deinit(allocator);
+
+	var child = std.process.Child.init(cmd.items, allocator);
+	const term = child.spawnAndWait() catch return 1;
+	if (term.Exited != 0) {
+		meta.fail(
+			"Package manager operation didn't succeed, thus no decategorizing happens.",
+			.{}
+		);
+		return 1;
+	}
+
+	// The decategorizing in question
+	transaction.delete(allocator, config) catch return 1;
 	return 0;
 }
 
@@ -85,6 +109,7 @@ pub fn main() u8 {
 	const config_path = Config.get_config_path(allocator) catch return 1;
 	defer allocator.free(config_path);
 
+	// TODO NOW dont errhandle twice
 	var config: Parsed(Config) = Config.parse(allocator, config_path) catch |err| {
 		switch (err) {
 			error.UnexpectedToken =>
@@ -110,6 +135,8 @@ pub fn main() u8 {
 	const eql = meta.eql;
 	return if (eql(subcommand, "install") or eql(subcommand, "i"))
 		install(allocator, &config.value, &args)
+	else if (eql(subcommand, "uninstall") or eql(subcommand, "u"))
+		uninstall(allocator, &config.value, &args)
 	else if (eql(subcommand, "help") or eql(subcommand, "h")) {
 		help(config_path);
 		return 0;

@@ -31,11 +31,11 @@ pub const AllocatorWrapper = if (builtin.mode == .Debug) struct {
 	/// Trivial struct initialization.
 	pub fn init() Self { return .{}; }
 
-	/// Simply returns `@import("std").heap.c_allocator`.
+	/// Simply returns `std.heap.c_allocator`.
 	pub fn allocator(_: *Self) std.mem.Allocator {
 		return std.heap.c_allocator;
 	}
 
-	/// NOP function.
+	/// no-op.
 	pub fn deinit(_: *Self) void {}
 };

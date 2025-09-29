@@ -69,6 +69,7 @@ pub fn init(
 			cats.to += 1;
 
 		// Comment marker (:)
+			// TODO do something if no comment follows
 		} else if (meta.eql(arg, ":")) {
 			expecting_comment = true;
 
@@ -121,6 +122,17 @@ pub fn write(self: *Self, allocator: Allocator, config: *Config) !void {
 	}
 }
 
+pub fn delete(self: *Self, allocator: Allocator, config: *Config) !void {
+	for (self.data.items) |pkgdata| {
+		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
+			var catfile = try categories.open_catfile(allocator, cat, config);
+			defer catfile.close();
+			std.debug.print("TODO opened file {s}\n", .{cat});
+			try delete_package(pkgdata.name, &catfile);
+		}
+	}
+}
+
 fn update_temporary(self: *Self, pkgs: *ISlice, cats: *ISlice) !void {
 	for (pkgs.slice(self.data.items)) |*pkg| pkg.cats = cats.*;
 	pkgs.* = .{ .from = self.data.items.len, .to = 0 };
@@ -137,7 +149,6 @@ fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !voi
 			const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 			break :blk line[0..hash_i];
 		}, " ");
-
 		if (meta.eql(uncommented, pkg)) return;
 	}
 
@@ -148,4 +159,20 @@ fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !voi
 	else _ = try writer.interface.write(pkg);
 
 	try writer.interface.flush();
+}
+
+fn delete_package(pkg: []const u8, file: *std.fs.File) !void {
+	var wbuf: [1024]u8 = undefined;
+	var writer = file.writer(&wbuf);
+
+	// TODO NOW panic
+	var rbuf: [1024]u8 = undefined;
+	var reader = file.reader(&rbuf);
+	while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+		const uncommented = std.mem.trim(u8, blk: {
+			const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
+			break :blk line[0..hash_i];
+		}, " ");
+		if (!meta.eql(uncommented, pkg)) _ = try writer.interface.print("{s}\n", .{line});
+	}
 }
