@@ -55,7 +55,7 @@ pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !v
 	}
 
 	// The decategorizing in question
-	try transaction.delete(&catman);
+	try transaction.delete(&catman, config);
 }
 
 pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
@@ -171,7 +171,7 @@ pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8
 	defer transaction.deinit(allocator);
 
 	// The decategorizing in question
-	try transaction.delete(&catman);
+	try transaction.delete(&catman, config);
 }
 
 pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {

@@ -129,12 +129,14 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	}
 }
 
-pub fn delete(self: *Self, catman: *const Categories) !void {
+pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try delete_package(pkgdata.name, &catfile);
+			if (config.remove_empty_cats and try catfile.getEndPos() == 0)
+				try catman.dir.deleteFile(cat);
 		}
 	}
 }

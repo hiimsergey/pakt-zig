@@ -4,8 +4,6 @@
 
 // TODO remove empty cats
 
-// TODO FINAL DEBUG "pakt i htop"
-
 // TODO implement optional json keys
 
 const std = @import("std");
@@ -51,12 +49,13 @@ pub fn main() u8 {
 		sc.help(config_path);
 		return 0;
 	}
+
 	const Description = struct {
 		[]const u8,
 		[]const u8,
 		*const fn (Allocator, *Config, []const [:0]u8) anyerror!void
 	};
-	const SUBCOMMAND_TABLE = [_]Description{
+	for ([_]Description{
 		.{ "install",        "i",  sc.install        },
 		.{ "uninstall",      "u",  sc.uninstall      },
 		.{ "sync-install",   "si", sc.sync_install   },
@@ -69,9 +68,7 @@ pub fn main() u8 {
 		.{ "edit",           "e",  sc.edit           },
 		.{ "purge",          "p",  sc.purge          },
 		.{ "native",         "n",  sc.native         }
-	};
-
-	for (SUBCOMMAND_TABLE) |subcmd| {
+	}) |subcmd| {
 		if (!meta.eql(arg1, subcmd.@"0") and !meta.eql(arg1, subcmd.@"1")) continue;
 		subcmd.@"2"(allocator, &parsed_config.value, args) catch return 1;
 		break;
