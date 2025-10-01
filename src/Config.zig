@@ -26,7 +26,7 @@ pub fn parse(allocator: Allocator, config_path: []const u8) !Parsed(Self) {
 	) catch |err| {
 		switch (err) {
 			std.fs.File.OpenError.FileNotFound =>
-				meta.fail("Config file at {s} not found!", .{config_path}),
+				meta.errln("Config file at {s} not found!", .{config_path}),
 			else => std.debug.print("Couldn't open config file!\n", .{})
 		}
 		return err;
@@ -39,8 +39,8 @@ pub fn parse(allocator: Allocator, config_path: []const u8) !Parsed(Self) {
 	) catch |err| {
 		switch (err) {
 			error.UnexpectedToken =>
-				meta.fail("Failed to parse config! Unexpected token!", .{}),
-			else => meta.fail(
+				meta.errln("Failed to parse config! Unexpected token!", .{}),
+			else => meta.errln(
 				\\Failed to parse config!
 				\\It was not a syntax error for sure but other than that idk what.
 				, .{}

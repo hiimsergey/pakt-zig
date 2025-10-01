@@ -1,3 +1,4 @@
+// TODO FINAL COMMENT ALL
 // TODO FINAL TEST
 // json valid but incomplete
 
@@ -32,7 +33,7 @@ pub fn main() u8 {
 	const args = std.process.argsAlloc(allocator) catch return 1;
 	defer std.process.argsFree(allocator, args);
 
-	if (args.len == 0) {
+	if (args.len == 1) {
 		config.value.call_no_arg_action(allocator) catch return 1;
 		return 0;
 	}
@@ -47,13 +48,15 @@ pub fn main() u8 {
 		subcommands.dry_install(allocator, &config.value, args)
 	else if (eql(subcommand, "dry-uninstall") or eql(subcommand, "du"))
 		subcommands.dry_uninstall(allocator, &config.value, args)
+	else if (eql(subcommand, "edit") or eql(subcommand, "e"))
+		subcommands.edit(allocator, &config.value, args)
 	else if (eql(subcommand, "native") or eql(subcommand, "n"))
 		subcommands.native(allocator, &config.value, args)
 	else if (eql(subcommand, "help") or eql(subcommand, "h")) {
 		subcommands.help(config_path);
 		return 0;
 	} else {
-		meta.fail(
+		meta.errln(
 			"Invalid subcommand {s}!\nSee 'pakt help' for available options!",
 			.{subcommand}
 		);

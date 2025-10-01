@@ -41,7 +41,7 @@ pub fn init(
 	cmd: ?*ArrayList([]const u8)
 ) !Self {
 	if (args.len < 3) {
-		meta.fail("Missing package names!\nSee 'pakt help' for correct usage!", .{});
+		meta.errln("Missing package names!\nSee 'pakt help' for correct usage!", .{});
 		return error.ExpectedArgs;
 	}
 
@@ -62,7 +62,7 @@ pub fn init(
 
 		// Wildcard token (like ++)
 		} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
-			try catman.append_all_cats(allocator, &result.cat_pool);
+			try catman.append_all_cat_names(allocator, &result.cat_pool);
 			cats.to = result.cat_pool.items.len;
 
 		// Category token (like +)
@@ -97,7 +97,7 @@ pub fn init(
 	}
 
 	if (expecting_comment) {
-		meta.fail(
+		meta.errln(
 			"Missing comment after the '{s}'!\nSee 'pakt help' for correct usage!",
 			.{config.inline_comment_syntax}
 		);

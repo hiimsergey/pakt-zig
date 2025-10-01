@@ -25,7 +25,7 @@ pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var child = std.process.Child.init(cmd.items, allocator);
 	const term = child.spawnAndWait() catch return 1;
 	if (term.Exited != 0) {
-		meta.fail(
+		meta.errln(
 			"Package manager operation didn't succeed, thus no categorizing happens.",
 			.{}
 		);
@@ -55,7 +55,7 @@ pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) u8
 	var child = std.process.Child.init(cmd.items, allocator);
 	const term = child.spawnAndWait() catch return 1;
 	if (term.Exited != 0) {
-		meta.fail(
+		meta.errln(
 			"Package manager operation didn't succeed, thus no decategorizing happens.",
 			.{}
 		);
@@ -91,6 +91,25 @@ pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8
 	// The decategorizing in question
 	transaction.delete(&catman) catch return 1;
 	return 0;
+}
+
+pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
+	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
+	defer cmd.deinit(allocator);
+
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var file_list = catman.get_file_list(allocator, args[2..], config) catch
+		return 1;
+	defer file_list.deinit(allocator);
+
+	cmd.append(allocator, config.editor) catch return 1;
+	cmd.appendSlice(allocator, file_list.data.items) catch return 1;
+
+	var child = std.process.Child.init(cmd.items, allocator);
+	const term = child.spawnAndWait() catch return 1;
+	return term.Exited;
 }
 
 pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8) u8 {

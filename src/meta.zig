@@ -13,14 +13,14 @@ pub fn eql_concat(lhs: []const u8, rhs: []const []const u8) bool {
 	return lhs.len == offset;
 }
 
-pub fn startswith(lhs: []const u8, rhs: []const u8) bool {
-	return std.mem.startsWith(u8, lhs, rhs);
+pub fn startswith(haystack: []const u8, needle: []const u8) bool {
+	return std.mem.startsWith(u8, haystack, needle);
 }
 
 var stderr_buf: [1024]u8 = undefined;
 var stderr = std.fs.File.stderr().writer(&stderr_buf);
 
-pub fn fail(comptime fmt: []const u8, args: anytype) void {
+pub fn errln(comptime fmt: []const u8, args: anytype) void {
 	stderr.interface.print("\x1b[31m" ++ fmt ++ "\n", args) catch {};
 }
 
