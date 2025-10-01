@@ -1,5 +1,4 @@
 // TODO NOW error mesages for most misinputs
-// TODO NOW replace nano with $EDITOR or nano
 // TODO FINAL document inline comments
 // in the README too
 // TODO document every config key in the README

@@ -15,7 +15,11 @@ dir: std.fs.Dir,
 /// Instantiate this class by opening the category path.
 pub fn init(config: *const Config) !Self {
 	return .{
-		.dir = try std.fs.openDirAbsolute(config.cat_path.?, .{ .iterate = true })
+		.dir = std.fs.openDirAbsolute(config.cat_path.?, .{ .iterate = true })
+		catch |err| {
+			meta.errln("Failed to open the category dir!", .{});
+			return err;
+		}
 	};
 }
 
@@ -26,7 +30,10 @@ pub fn deinit(self: *Self) void {
 
 /// Given a category name, open or create the respective file.
 pub fn open_catfile(self: *const Self, name: []const u8) !File {
-	return try self.dir.createFile(name, .{ .read = true, .truncate = false });
+	return self.dir.createFile(name, .{ .read = true, .truncate = false }) catch |err| {
+		meta.errln("Failed to open the file of the category '{s}'!", .{name});
+		return err;
+	};
 }
 
 /// Given a pointer to a `StringListOwned`, extend it with every category's name.

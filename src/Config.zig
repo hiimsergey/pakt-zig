@@ -34,7 +34,7 @@ pub const ConfigParseResult = struct {
 			switch (err) {
 				std.fs.File.OpenError.FileNotFound =>
 					meta.errln("Config file at {s} not found!", .{config_path}),
-				else => std.debug.print("Couldn't open config file!\n", .{})
+				else => meta.errln("Couldn't open config file!", .{})
 			}
 			return err;
 		};
@@ -91,7 +91,12 @@ pub fn get_config_path(allocator: Allocator) ![]const u8 {
 /// Run the user-defined no_arg_action.
 pub fn call_no_arg_action(self: *Self, allocator: Allocator) !void {
 	var child = std.process.Child.init(self.no_arg_action.?, allocator);
-	const term = try child.spawnAndWait();
+	const term = child.spawnAndWait() catch {
+		const command = try std.mem.concat(allocator, u8, self.no_arg_action.?);
+		defer allocator.free(command);
+		meta.errln("Failed to run the no arg action: '{s}'", .{command});
+		return error.Generic;
+	};
 	if (term.Exited != 0) return error.Generic;
 }
 

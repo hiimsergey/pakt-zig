@@ -211,7 +211,10 @@ pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	try catman.write_file_list(allocator, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
-		var file = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
+		var file = std.fs.openFileAbsolute(path, .{ .mode = .read_only }) catch |err| {
+			meta.errln("Failed to open the file '{s}'", .{path});
+			return err;
+		};
 		defer file.close();
 
 		var buf: [1024]u8 = undefined;
@@ -330,7 +333,12 @@ pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8)
 	try cmd.appendSlice(allocator, args[2..]);
 
 	var child = std.process.Child.init(cmd.items, allocator);
-	const term = try child.spawnAndWait();
+	const term = child.spawnAndWait() catch {
+		const command = try std.mem.concat(allocator, u8, cmd.items);
+		defer allocator.free(command);
+		meta.errln("Failed to spawn the command '{s}'", .{command});
+		return error.Generic;
+	};
 	if (term.Exited != 0) return error.Generic;
 }
 
@@ -366,8 +374,8 @@ pub fn help(config_path: []const u8) void {
 \\About:
 \\    v2.0.0  GPL-3.0  https://github.com/hiimsergey/pakt-zig
 \\    Sergey Lavrent <https://github.com/hiimsergey>
-\\
-\\A Zig rewrite of the POSIX shell script:    https://github.com/mminl-de/pakt
+\\    A Zig rewrite of the POSIX shell script by Sergey Lavrent and MrMineDe
+\\    https://github.com/mminl-de/pakt
 \\
 	, .{config_path});
 }
