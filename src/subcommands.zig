@@ -99,7 +99,7 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 		meta.errln("Invalid args!\nSee 'pakt help' for correct usage!", .{});
 		return 1;
 	}
-	const separator: []const u8 = if (args.len < 3) "\n" else args[2];
+	const separator: []const u8 = if (args.len < 3) "  " else args[2];
 
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
@@ -113,6 +113,42 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 
 	meta.print("{s}\n", .{string});
 	return 0;
+}
+
+pub fn find(config: *Config, args: []const [:0]u8) u8 {
+	if (args.len < 3) {
+		meta.errln("Missing package names!\nSee 'pakt help' for correct usage!", .{});
+		return 1;
+	}
+
+	var stat: u8 = 1;
+
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var buf: [1024]u8 = undefined;
+	var it = catman.dir.iterate();
+
+	cat: while (it.next() catch return 1) |entry| {
+		var catfile = catman.open_catfile(entry.name) catch return 1;
+		defer catfile.close();
+
+		var reader = catfile.reader(&buf);
+		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+			const uncommented = std.mem.trim(u8, blk: {
+				const hash_i =
+					std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
+				break :blk line[0..hash_i];
+			}, " ");
+			for (args[2..]) |pkg| if (meta.eql(uncommented, pkg)) {
+				stat = 0;
+				meta.print("{s}\n", .{entry.name});
+				continue :cat;
+			};
+		}
+	}
+
+	return stat;
 }
 
 pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
