@@ -4,30 +4,15 @@ const std = @import("std");
 const meta = @import("meta.zig");
 
 const Allocator = std.mem.Allocator;
-const ArrayList = std.ArrayList;
 const File = std.fs.File;
 const Config = @import("Config.zig");
+const StringListOwned = meta.StringListOwned;
 
 const Self = @This();
 
-pub const StringListOwned = struct {
-	data: ArrayList([]const u8),
-
-	pub fn init(allocator: Allocator, n: usize) !StringListOwned {
-		return .{
-			.data = try ArrayList([]const u8).initCapacity(allocator, n)
-		};
-	}
-
-	pub fn deinit(self: *StringListOwned, allocator: Allocator) void {
-		for (self.data.items) |item| allocator.free(item);
-		self.data.deinit(allocator);
-	}
-};
-
 dir: std.fs.Dir,
 
-pub fn init(config: *Config) !Self {
+pub fn init(config: *const Config) !Self {
 	return .{
 		.dir = try std.fs.openDirAbsolute(config.cat_path, .{ .iterate = true })
 	};
@@ -44,54 +29,74 @@ pub fn open_catfile(self: *const Self, name: []const u8) !File {
 pub fn append_all_cat_names(
 	self: *const Self,
 	allocator: Allocator,
-	cat_pool: *ArrayList([]const u8)
+	cat_list: *StringListOwned
 ) !void {
 	var it = self.dir.iterate();
 	while (try it.next()) |entry| {
 		const entry_owned = try allocator.alloc(u8, entry.name.len);
 		@memcpy(entry_owned, entry.name);
-		try cat_pool.append(allocator, entry_owned);
+		try cat_list.data.append(allocator, entry_owned);
 	}
 }
 
-pub fn get_file_list(
+pub fn write_file_list(
 	self: *const Self,
 	allocator: Allocator,
 	args: []const [:0]u8,
-	config: *Config
-) !StringListOwned {
-	var result = StringListOwned{
-		.data = try ArrayList([]const u8).initCapacity(allocator, args.len)
-	};
-
+	config: *Config,
+	file_list: *StringListOwned
+) !void {
 	for (args) |arg| {
 		if (meta.eql_concat(arg, &.{config.cat_syntax, config.cat_syntax})) {
-			result.data.clearRetainingCapacity();
-			try self.append_all_cat_paths(allocator, config, &result.data);
+			file_list.data.clearRetainingCapacity();
+			try self.append_all_cat_paths(allocator, config, file_list);
 		} else if (meta.startswith(arg, config.cat_syntax)) {
 			const cat_name = arg[config.cat_syntax.len..];
 			const cat_path =
 				try std.mem.concat(allocator, u8, &.{config.cat_path, "/", cat_name});
-			try result.data.append(allocator, cat_path);
+			try file_list.data.append(allocator, cat_path);
 		} else {
 			const arg_owned = try allocator.alloc(u8, arg.len);
 			@memcpy(arg_owned, arg);
-			try result.data.append(allocator, arg_owned);
+			try file_list.data.append(allocator, arg_owned);
 		}
 	}
+}
 
-	return result;
+// TODO NOW
+pub fn write_file_list_filtered(
+	self: *const Self,
+	allocator: Allocator,
+	args: []const [:0]u8,
+	config: *Config,
+	file_list: *StringListOwned
+) !void {
+	for (args) |arg| {
+		if (meta.eql_concat(arg, &.{config.cat_syntax, config.cat_syntax})) {
+			file_list.data.clearRetainingCapacity();
+			try self.append_all_cat_paths(allocator, config, file_list);
+		} else if (meta.startswith(arg, config.cat_syntax)) {
+			const cat_name = arg[config.cat_syntax.len..];
+			const cat_path =
+				try std.mem.concat(allocator, u8, &.{config.cat_path, "/", cat_name});
+			try file_list.data.append(allocator, cat_path);
+		} else {
+			const arg_owned = try allocator.alloc(u8, arg.len);
+			@memcpy(arg_owned, arg);
+			try file_list.data.append(allocator, arg_owned);
+		}
+	}
 }
 
 fn append_all_cat_paths(
 	self: *const Self,
 	allocator: Allocator,
 	config: *Config,
-	cat_pool: *ArrayList([]const u8)
+	cat_list: *StringListOwned
 ) !void {
 	var it = self.dir.iterate();
 	while (try it.next()) |entry| {
 		const path = try std.mem.concat(allocator, u8, &.{config.cat_path, "/", entry.name});
-		try cat_pool.append(allocator, path);
+		try cat_list.data.append(allocator, path);
 	}
 }

@@ -5,6 +5,7 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
+const StringListOwned = meta.StringListOwned;
 const Transaction = @import("Transaction.zig");
 
 pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
@@ -103,14 +104,14 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
 
-	var cat_pool = Categories.StringListOwned.init(allocator, 8) catch return 1;
-	defer cat_pool.deinit(allocator);
-	catman.append_all_cat_names(allocator, &cat_pool.data) catch return 1;
+	var cat_list = StringListOwned.init_capacity(allocator, 8) catch return 1;
+	defer cat_list.deinit(allocator);
+	catman.append_all_cat_names(allocator, &cat_list) catch return 1;
 
-	const string = std.mem.join(allocator, separator, cat_pool.data.items) catch return 1;
+	const string = std.mem.join(allocator, separator, cat_list.data.items) catch return 1;
 	defer allocator.free(string);
 
-	meta.println("{s}", .{string});
+	meta.print("{s}\n", .{string});
 	return 0;
 }
 
@@ -121,9 +122,9 @@ pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
 
-	var file_list = catman.get_file_list(allocator, args[2..], config) catch
-		return 1;
+	var file_list = StringListOwned.init_capacity(allocator, 2) catch return 1;
 	defer file_list.deinit(allocator);
+	catman.write_file_list(allocator, args[2..], config, &file_list) catch return 1;
 
 	cmd.append(allocator, config.editor) catch return 1;
 	cmd.appendSlice(allocator, file_list.data.items) catch return 1;
@@ -131,6 +132,31 @@ pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var child = std.process.Child.init(cmd.items, allocator);
 	const term = child.spawnAndWait() catch return 1;
 	return term.Exited;
+}
+
+pub fn purge(config: *const Config, args: []const [:0]u8) u8 {
+	var stdin_buf: [128]u8 = undefined;
+	var stdin = std.fs.File.stdin().reader(&stdin_buf);
+
+	for (args[2..]) |arg| meta.print(" +{s}", .{arg});
+	meta.print(
+		"\nAre you sure you want to delete these categories? Type 'yes' to proceed: ",
+		.{}
+	);
+	meta.outflush();
+
+	const response = stdin.interface.takeDelimiterExclusive('\n') catch return 1;
+	if (!meta.eql(response, "yes")) return 1;
+
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var stat: u8 = 0;
+	for (args[2..]) |cat| catman.dir.deleteFile(cat) catch {
+		meta.errln("Failed to delete +{s}", .{cat});
+		stat |= 1;
+	};
+	return stat;
 }
 
 pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8) u8 {
@@ -161,7 +187,8 @@ pub fn help(config_path: []const u8) void {
 \\                                                    or arbitrary files
 \\    pakt s(ync-)u(ninstall) (file | +cat)...      uninstall several packages from categories
 \\                                                    or arbitary files
-\\    pakt l(ist)             ls-arg...             list all user-defined categories
+\\    pakt l(ist)             (separator)           list all user-defined categories separated
+\\                                                    separated by an optional string
 \\    pakt c(at)              (file | +cat)...      list all packages in the given categories
 \\    pakt f(ind)             pkg...                list categories the given packages are in
 \\    pakt e(dit)             (file | +cat)...      edit category or arbitary files manually

@@ -22,7 +22,10 @@ pub fn main() u8 {
 	defer aw.deinit();
 	const allocator = aw.allocator();
 
-	defer meta.flush();
+	defer {
+		meta.outflush();
+		meta.errflush();
+	}
 
 	const config_path = Config.get_config_path(allocator) catch return 1;
 	defer allocator.free(config_path);
@@ -52,6 +55,8 @@ pub fn main() u8 {
 		subcommands.list(allocator, &config.value, args)
 	else if (eql(subcommand, "edit") or eql(subcommand, "e"))
 		subcommands.edit(allocator, &config.value, args)
+	else if (eql(subcommand, "purge") or eql(subcommand, "p"))
+		subcommands.purge(&config.value, args)
 	else if (eql(subcommand, "native") or eql(subcommand, "n"))
 		subcommands.native(allocator, &config.value, args)
 	else if (eql(subcommand, "help") or eql(subcommand, "h")) {

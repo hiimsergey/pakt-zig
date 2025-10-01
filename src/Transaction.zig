@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
+const StringListOwned = meta.StringListOwned;
 
 /// An index based slice description over an unrelated array. Unlike regular slices,
 /// it doesn't get invalidated if an `ArrayList` gets appended to.
@@ -31,7 +32,7 @@ const PackageData = struct {
 const Self = @This();
 
 data: ArrayList(PackageData),
-cat_pool: ArrayList([]const u8),
+cat_list: StringListOwned,
 
 pub fn init(
 	allocator: Allocator,
@@ -47,7 +48,7 @@ pub fn init(
 
 	var result = Self{
 		.data = try ArrayList(PackageData).initCapacity(allocator, 2),
-		.cat_pool = try ArrayList([]const u8).initCapacity(allocator, 2)
+		.cat_list = try StringListOwned.init_capacity(allocator, 2)
 	};
 
 	var expecting_comment = false;
@@ -62,14 +63,14 @@ pub fn init(
 
 		// Wildcard token (like ++)
 		} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
-			try catman.append_all_cat_names(allocator, &result.cat_pool);
-			cats.to = result.cat_pool.items.len;
+			try catman.append_all_cat_names(allocator, &result.cat_list);
+			cats.to = result.cat_list.data.items.len;
 
 		// Category token (like +)
 		} else if (meta.startswith(arg, config.cat_syntax)) {
 			const cat_owned = try allocator.alloc(u8, arg.len - config.cat_syntax.len);
 			@memcpy(cat_owned, arg[config.cat_syntax.len..]);
-			try result.cat_pool.append(allocator, cat_owned);
+			try result.cat_list.data.append(allocator, cat_owned);
 			cats.to += 1;
 
 		// Comment marker (like :)
@@ -110,13 +111,12 @@ pub fn init(
 
 pub fn deinit(self: *Self, allocator: Allocator) void {
 	self.data.deinit(allocator);
-	for (self.cat_pool.items) |cat| allocator.free(cat);
-	self.cat_pool.deinit(allocator);
+	self.cat_list.deinit(allocator);
 }
 
 pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
-		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
+		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try write_package(pkgdata.name, &catfile, pkgdata.comment);
@@ -131,7 +131,7 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 
 pub fn delete(self: *Self, catman: *const Categories) !void {
 	for (self.data.items) |pkgdata| {
-		for (pkgdata.cats.slice(self.cat_pool.items)) |cat| {
+		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try delete_package(pkgdata.name, &catfile);
@@ -142,7 +142,7 @@ pub fn delete(self: *Self, catman: *const Categories) !void {
 fn update_temporary(self: *Self, pkgs: *ISlice, cats: *ISlice) !void {
 	for (pkgs.slice(self.data.items)) |*pkg| pkg.cats = cats.*;
 	pkgs.* = .{ .from = self.data.items.len, .to = 0 };
-	cats.* = .{ .from = self.cat_pool.items.len, .to = 0 };
+	cats.* = .{ .from = self.cat_list.data.items.len, .to = 0 };
 }
 
 fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !void {
