@@ -2,6 +2,10 @@
 // TODO FINAL TEST
 // json valid but incomplete
 
+// TODO remove empty cats
+
+// TODO FINAL DEBUG "pakt i htop"
+
 // TODO implement optional json keys
 
 const std = @import("std");
@@ -50,25 +54,27 @@ pub fn main() u8 {
 	const Description = struct {
 		[]const u8,
 		[]const u8,
-		*const fn (Allocator, *Config, []const [:0]u8) u8
+		*const fn (Allocator, *Config, []const [:0]u8) anyerror!void
 	};
 	const SUBCOMMAND_TABLE = [_]Description{
-		.{ "install",       "i",  sc.install      },
-		.{ "uninstall",     "u",  sc.uninstall    },
-		.{ "sync-install",  "si", sc.sync_install },
-		.{ "dry-install",   "di", sc.dry_install  },
-		.{ "dry-uninstall", "du", sc.dry_install  },
-		.{ "list",          "l",  sc.list         },
-		.{ "cat",           "c",  sc.cat          },
-		.{ "find",          "f",  sc.find         },
-		.{ "edit",          "e",  sc.edit         },
-		.{ "purge",         "p",  sc.purge        },
-		.{ "native",        "n",  sc.native       }
+		.{ "install",        "i",  sc.install        },
+		.{ "uninstall",      "u",  sc.uninstall      },
+		.{ "sync-install",   "si", sc.sync_install   },
+		.{ "sync-uninstall", "su", sc.sync_uninstall },
+		.{ "dry-install",    "di", sc.dry_install    },
+		.{ "dry-uninstall",  "du", sc.dry_uninstall  },
+		.{ "list",           "l",  sc.list           },
+		.{ "cat",            "c",  sc.cat            },
+		.{ "find",           "f",  sc.find           },
+		.{ "edit",           "e",  sc.edit           },
+		.{ "purge",          "p",  sc.purge          },
+		.{ "native",         "n",  sc.native         }
 	};
 
 	for (SUBCOMMAND_TABLE) |subcmd| {
-		if (meta.eql(arg1, subcmd.@"0") or meta.eql(arg1, subcmd.@"1"))
-			return subcmd.@"2"(allocator, &parsed_config.value, args);
+		if (!meta.eql(arg1, subcmd.@"0") and !meta.eql(arg1, subcmd.@"1")) continue;
+		subcmd.@"2"(allocator, &parsed_config.value, args) catch return 1;
+		break;
 	} else {
 		meta.errln(
 			"Invalid subcommand '{s}'!\nSee 'pakt help' for available options!",
@@ -76,4 +82,6 @@ pub fn main() u8 {
 		);
 		return 2;
 	}
+
+	return 0;
 }
