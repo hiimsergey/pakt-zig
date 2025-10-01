@@ -53,6 +53,8 @@ pub fn main() u8 {
 		subcommands.dry_uninstall(allocator, &config.value, args)
 	else if (eql(subcommand, "list") or eql(subcommand, "l"))
 		subcommands.list(allocator, &config.value, args)
+	else if (eql(subcommand, "cat") or eql(subcommand, "c"))
+		subcommands.cat(allocator, &config.value, args)
 	else if (eql(subcommand, "find") or eql(subcommand, "f"))
 		subcommands.find(&config.value, args)
 	else if (eql(subcommand, "edit") or eql(subcommand, "e"))

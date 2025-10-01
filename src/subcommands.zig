@@ -99,7 +99,7 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 		meta.errln("Invalid args!\nSee 'pakt help' for correct usage!", .{});
 		return 1;
 	}
-	const separator: []const u8 = if (args.len < 3) "  " else args[2];
+	const separator: []const u8 = if (args.len == 2) "  " else args[2];
 
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
@@ -112,6 +112,41 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	defer allocator.free(string);
 
 	meta.print("{s}\n", .{string});
+	return 0;
+}
+
+pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
+	if (args.len == 2) {
+		meta.errln(
+			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
+			.{}
+		);
+		return 1;
+	}
+
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var file_list = StringListOwned.init_capacity(allocator, 2) catch return 1;
+	defer file_list.deinit(allocator);
+	catman.write_file_list(allocator, args[2..], config, &file_list) catch return 1;
+
+	for (file_list.data.items) |path| {
+		var file = std.fs.openFileAbsolute(path, .{ .mode = .read_only }) catch return 1;
+		defer file.close();
+
+		var buf: [1024]u8 = undefined;
+		var reader = file.reader(&buf);
+
+		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+			const uncommented = std.mem.trim(u8, blk: {
+				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
+				break :blk line[0..hash_i];
+			}, " ");
+			meta.print("{s}\n", .{uncommented});
+		}
+	}
+
 	return 0;
 }
 
@@ -188,8 +223,8 @@ pub fn purge(config: *const Config, args: []const [:0]u8) u8 {
 	defer catman.deinit();
 
 	var stat: u8 = 0;
-	for (args[2..]) |cat| catman.dir.deleteFile(cat) catch {
-		meta.errln("Failed to delete +{s}", .{cat});
+	for (args[2..]) |arg| catman.dir.deleteFile(arg) catch {
+		meta.errln("Failed to delete +{s}", .{arg});
 		stat |= 1;
 	};
 	return stat;
