@@ -12,7 +12,8 @@ const Transaction = @import("Transaction.zig");
 pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
-	try cmd.appendSlice(allocator, &.{config.package_manager, config.uninstall_arg});
+	try cmd.appendSlice(allocator, config.package_manager);
+	try cmd.appendSlice(allocator, config.uninstall_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
@@ -38,7 +39,8 @@ pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !voi
 pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
-	try cmd.appendSlice(allocator, &.{config.package_manager, config.uninstall_arg});
+	try cmd.appendSlice(allocator, config.package_manager);
+	try cmd.appendSlice(allocator, config.uninstall_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
@@ -70,14 +72,10 @@ pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8)
 		return error.Generic;
 	}
 
-	var cmd = try StringListOwned.init_capacity(allocator, 4);
+	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
-
-	// We have to clone the strings because of the requirement of `StringListOwned`.
-	try cmd.data.appendSlice(allocator, &.{
-		try meta.dup(allocator, config.package_manager),
-		try meta.dup(allocator, config.install_arg)
-	});
+	try cmd.appendSlice(allocator, config.package_manager);
+	try cmd.appendSlice(allocator, config.install_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
@@ -98,11 +96,11 @@ pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8)
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			try cmd.data.append(allocator, try meta.dup(allocator, uncommented));
+			try cmd.append(allocator, uncommented);
 		}
 	}
 
-	var child = std.process.Child.init(cmd.data.items, allocator);
+	var child = std.process.Child.init(cmd.items, allocator);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) return error.Generic;
 }
@@ -116,14 +114,10 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 		return error.Generic;
 	}
 
-	var cmd = try StringListOwned.init_capacity(allocator, 4);
+	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
-
-	// We have to clone the strings because of the requirement of `StringListOwned`.
-	try cmd.data.appendSlice(allocator, &.{
-		try meta.dup(allocator, config.package_manager),
-		try meta.dup(allocator, config.uninstall_arg)
-	});
+	try cmd.appendSlice(allocator, config.package_manager);
+	try cmd.appendSlice(allocator, config.uninstall_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
@@ -144,11 +138,11 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			try cmd.data.append(allocator, try meta.dup(allocator, uncommented));
+			try cmd.append(allocator, uncommented);
 		}
 	}
 
-	var child = std.process.Child.init(cmd.data.items, allocator);
+	var child = std.process.Child.init(cmd.items, allocator);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) return error.Generic;
 }
@@ -332,7 +326,7 @@ pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8)
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 3);
 	defer cmd.deinit(allocator);
 
-	try cmd.append(allocator, config.package_manager);
+	try cmd.appendSlice(allocator, config.package_manager);
 	try cmd.appendSlice(allocator, args[2..]);
 
 	var child = std.process.Child.init(cmd.items, allocator);

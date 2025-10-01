@@ -32,13 +32,12 @@ const PackageData = struct {
 
 const Self = @This();
 
-/// TODO COMMENT
 data: ArrayList(PackageData),
-
-/// TODO COMMENT
 cat_list: StringListOwned,
 
-/// TODO COMMENT
+/// Read the other arguments and store which packages are assigned to which
+/// categories. If `cmd` is non-null, then append arguments that belong to
+/// the package manager command.
 pub fn init(
 	allocator: Allocator,
 	args: []const [:0]u8,
@@ -114,29 +113,28 @@ pub fn init(
 	return result;
 }
 
-/// TODO COMMENT
 pub fn deinit(self: *Self, allocator: Allocator) void {
 	self.data.deinit(allocator);
 	self.cat_list.deinit(allocator);
 }
 
-/// TODO COMMENT
+/// Write the situation into the involved categories' files.
 pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
-			try write_package(pkgdata.name, &catfile, pkgdata.comment);
+			try write_package(&catfile, pkgdata.name, pkgdata.comment);
 		}
 		for (config.default_cats.?) |cat| {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
-			try write_package(pkgdata.name, &catfile, pkgdata.comment);
+			try write_package(&catfile, pkgdata.name, pkgdata.comment);
 		}
 	}
 }
 
-/// TODO COMMENT
+/// Remove packages from the involved categories' files.
 pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
@@ -149,15 +147,15 @@ pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	}
 }
 
-/// TODO COMMENT
+/// Reset helper variables owned by `init()`.
 fn update_temporary(self: *Self, pkgs: *ISlice, cats: *ISlice) !void {
 	for (pkgs.slice(self.data.items)) |*pkg| pkg.cats = cats.*;
 	pkgs.* = .{ .from = self.data.items.len, .to = 0 };
 	cats.* = .{ .from = self.cat_list.data.items.len, .to = 0 };
 }
 
-/// TODO COMMENT
-fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !void {
+/// Write the package name and its inline comment into the given file.
+fn write_package(file: *std.fs.File, pkg: []const u8, comment: ?[]const u8) !void {
 	var buf: [1024]u8 = undefined;
 
 	// Check if package already exists in a category file
@@ -179,7 +177,7 @@ fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !voi
 	try writer.interface.flush();
 }
 
-/// TODO COMMENT
+/// Remove the lines with the package name from the given file.
 fn delete_package(pkg: []const u8, file: *std.fs.File) !void {
 	var wbuf: [1024]u8 = undefined;
 	var rbuf: [1024]u8 = undefined;

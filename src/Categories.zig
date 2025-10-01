@@ -40,7 +40,12 @@ pub fn append_all_cat_names(
 		try cat_list.data.append(allocator, try meta.dup(allocator, entry.name));
 }
 
-/// TODO COMMENT
+/// Given a pointer to a `StringListOwned`, extend it with absolute paths of
+/// files references by `args`. If an arg starts with the cat syntax (+ by default),
+/// then the rest is interpreted as the basename of a category file. Otherwise,
+/// the arg is read as-is as a file path.
+/// Just like usual, double cat syntax (++ by default) is interpreted as all
+/// category files' paths.
 pub fn write_file_list(
 	self: *const Self,
 	allocator: Allocator,
@@ -50,31 +55,27 @@ pub fn write_file_list(
 ) !void {
 	for (args) |arg| {
 		if (meta.eql_concat(arg, &.{config.cat_syntax.?, config.cat_syntax.?})) {
-			file_list.data.clearRetainingCapacity();
-			try self.append_all_cat_paths(allocator, config, file_list);
+			var it = self.dir.iterate();
+			while (try it.next()) |entry| {
+				const path = try std.mem.concat(
+					allocator,
+					u8,
+					&.{config.cat_path.?, "/", entry.name}
+				);
+				try file_list.data.append(allocator, path);
+			}
 		} else if (meta.startswith(arg, config.cat_syntax.?)) {
 			const cat_name = arg[config.cat_syntax.?.len..];
-			const cat_path =
-				try std.mem.concat(allocator, u8, &.{config.cat_path.?, "/", cat_name});
+			const cat_path = try std.mem.concat(
+				allocator,
+				u8,
+				&.{config.cat_path.?, "/", cat_name}
+			);
 			try file_list.data.append(allocator, cat_path);
 		} else {
 			const arg_owned = try allocator.alloc(u8, arg.len);
 			@memcpy(arg_owned, arg);
 			try file_list.data.append(allocator, arg_owned);
 		}
-	}
-}
-
-/// TODO COMMENT
-fn append_all_cat_paths(
-	self: *const Self,
-	allocator: Allocator,
-	config: *Config,
-	cat_list: *StringListOwned
-) !void {
-	var it = self.dir.iterate();
-	while (try it.next()) |entry| {
-		const path = try std.mem.concat(allocator, u8, &.{config.cat_path.?, "/", entry.name});
-		try cat_list.data.append(allocator, path);
 	}
 }
