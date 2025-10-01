@@ -17,6 +17,7 @@ const ISlice = struct {
 	from: usize,
 	to: usize,
 
+	/// Slice `buf` with `Self`'s bounds.
 	pub fn slice(self: *const ISlice, buf: anytype) @TypeOf(buf) {
 		return buf[self.from..self.to];
 	}
@@ -31,9 +32,13 @@ const PackageData = struct {
 
 const Self = @This();
 
+/// TODO COMMENT
 data: ArrayList(PackageData),
+
+/// TODO COMMENT
 cat_list: StringListOwned,
 
+/// TODO COMMENT
 pub fn init(
 	allocator: Allocator,
 	args: []const [:0]u8,
@@ -109,11 +114,13 @@ pub fn init(
 	return result;
 }
 
+/// TODO COMMENT
 pub fn deinit(self: *Self, allocator: Allocator) void {
 	self.data.deinit(allocator);
 	self.cat_list.deinit(allocator);
 }
 
+/// TODO COMMENT
 pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
@@ -129,6 +136,7 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	}
 }
 
+/// TODO COMMENT
 pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
 		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
@@ -141,12 +149,14 @@ pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	}
 }
 
+/// TODO COMMENT
 fn update_temporary(self: *Self, pkgs: *ISlice, cats: *ISlice) !void {
 	for (pkgs.slice(self.data.items)) |*pkg| pkg.cats = cats.*;
 	pkgs.* = .{ .from = self.data.items.len, .to = 0 };
 	cats.* = .{ .from = self.cat_list.data.items.len, .to = 0 };
 }
 
+/// TODO COMMENT
 fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !void {
 	var buf: [1024]u8 = undefined;
 
@@ -169,6 +179,7 @@ fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !voi
 	try writer.interface.flush();
 }
 
+/// TODO COMMENT
 fn delete_package(pkg: []const u8, file: *std.fs.File) !void {
 	var wbuf: [1024]u8 = undefined;
 	var rbuf: [1024]u8 = undefined;

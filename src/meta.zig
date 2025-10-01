@@ -3,6 +3,8 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
+/// A wrapper over `ArrayList([]const u8)` signaling that the strings are owned
+/// and should be freed by us.
 pub const StringListOwned = struct {
 	data: ArrayList([]const u8),
 
@@ -18,25 +20,29 @@ pub const StringListOwned = struct {
 	}
 };
 
+/// Clone a string.
 pub fn dup(allocator: Allocator, buf: []const u8) ![]const u8 {
 	const result = try allocator.alloc(u8, buf.len);
 	@memcpy(result, buf);
 	return result;
 }
 
-pub fn eql(lhs: []const u8, rhs: []const u8) bool {
-	return std.mem.eql(u8, lhs, rhs);
+/// Like `std.mem.eql` but for strings and shorter.
+pub fn eql(a: []const u8, b: []const u8) bool {
+	return std.mem.eql(u8, a, b);
 }
 
-pub fn eql_concat(lhs: []const u8, rhs: []const []const u8) bool {
+/// Compares `a` with a concatenation of all parts of `b`.
+pub fn eql_concat(a: []const u8, b: []const []const u8) bool {
 	var offset: usize = 0;
-	for (rhs) |r| {
-		if (!eql(lhs[offset..offset + r.len], r)) return false;
-		offset += r.len;
+	for (b) |part| {
+		if (!eql(a[offset..offset + part.len], part)) return false;
+		offset += part.len;
 	}
-	return lhs.len == offset;
+	return a.len == offset;
 }
 
+/// Like `std.mem.startsWith` but for strings and shorter.
 pub fn startswith(haystack: []const u8, needle: []const u8) bool {
 	return std.mem.startsWith(u8, haystack, needle);
 }
@@ -46,10 +52,12 @@ var stderr_buf: [1024]u8 = undefined;
 var stdout = std.fs.File.stdout().writer(&stdout_buf);
 var stderr = std.fs.File.stderr().writer(&stderr_buf);
 
+/// Buffered stdout printing.
 pub fn print(comptime fmt: []const u8, args: anytype) void {
 	stdout.interface.print(fmt, args) catch {};
 }
 
+/// Buffered stderr printing, with a trailing newline.
 pub fn errln(comptime fmt: []const u8, args: anytype) void {
 	stderr.interface.print("\x1b[31m" ++ fmt ++ "\n", args) catch {};
 }

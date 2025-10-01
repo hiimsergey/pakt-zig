@@ -18,10 +18,12 @@ no_arg_action: ?[]const u8 = null,
 default_cats: ?[]const []const u8 = null,
 remove_empty_cats: ?bool = null,
 
+/// TODO COMMENT
 pub const ConfigParseResult = struct {
 	parsed_config: Parsed(Self),
 	cat_path_is_owned: bool,
 
+	/// TODO COMMENT
 	pub fn init(allocator: Allocator, config_path: []const u8) !ConfigParseResult {
 		const pakt_conf: []u8 = std.fs.cwd().readFileAlloc(
 			allocator,
@@ -59,12 +61,14 @@ pub const ConfigParseResult = struct {
 		};
 	}
 
+	/// TODO COMMENT
 	pub fn deinit(self: *ConfigParseResult, allocator: Allocator) void {
 		if (self.cat_path_is_owned) allocator.free(self.parsed_config.value.cat_path.?);
 		self.parsed_config.deinit();
 	}
 };
 
+/// TODO COMMENT
 pub fn get_config_path(allocator: Allocator) ![]const u8 {
 	return std.process.getEnvVarOwned(allocator, "PAKT_CONF_PATH") catch {
 		const config_path = std.process.getEnvVarOwned(allocator, "XDG_CONFIG_HOME")
@@ -79,6 +83,7 @@ pub fn get_config_path(allocator: Allocator) ![]const u8 {
 	};
 }
 
+/// TODO COMMENT
 pub fn call_no_arg_action(self: *Self, allocator: Allocator) !void {
 	var argv = try std.ArrayList([]const u8).initCapacity(allocator, 2);
 	defer argv.deinit(allocator);
@@ -90,6 +95,7 @@ pub fn call_no_arg_action(self: *Self, allocator: Allocator) !void {
 	_ = try child.spawnAndWait();
 }
 
+/// TODO COMMENT
 fn set_default_values(self: *Self, allocator: Allocator) !bool {
 	const result = self.cat_path == null;
 

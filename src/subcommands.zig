@@ -8,6 +8,7 @@ const Config = @import("Config.zig");
 const StringListOwned = meta.StringListOwned;
 const Transaction = @import("Transaction.zig");
 
+/// Install packages, write them into categories and/or give them inline comments.
 pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
@@ -33,6 +34,7 @@ pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !voi
 	try transaction.write(&catman, config);
 }
 
+/// Uninstall packages and/or remove them from categories.
 pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
@@ -58,6 +60,7 @@ pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !v
 	try transaction.delete(&catman, config);
 }
 
+/// Bulk-install packages from category files or custom files.
 pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
 		meta.errln(
@@ -69,6 +72,8 @@ pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8)
 
 	var cmd = try StringListOwned.init_capacity(allocator, 4);
 	defer cmd.deinit(allocator);
+
+	// We have to clone the strings because of the requirement of `StringListOwned`.
 	try cmd.data.appendSlice(allocator, &.{
 		try meta.dup(allocator, config.package_manager),
 		try meta.dup(allocator, config.install_arg)
@@ -93,10 +98,7 @@ pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8)
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			const uncommented_owned = try allocator.alloc(u8, uncommented.len);
-			@memcpy(uncommented_owned, uncommented);
-
-			try cmd.data.append(allocator, uncommented_owned);
+			try cmd.data.append(allocator, try meta.dup(allocator, uncommented));
 		}
 	}
 
@@ -116,6 +118,8 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 
 	var cmd = try StringListOwned.init_capacity(allocator, 4);
 	defer cmd.deinit(allocator);
+
+	// We have to clone the strings because of the requirement of `StringListOwned`.
 	try cmd.data.appendSlice(allocator, &.{
 		try meta.dup(allocator, config.package_manager),
 		try meta.dup(allocator, config.uninstall_arg)
@@ -140,10 +144,7 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			const uncommented_owned = try allocator.alloc(u8, uncommented.len);
-			@memcpy(uncommented_owned, uncommented);
-
-			try cmd.data.append(allocator, uncommented_owned);
+			try cmd.data.append(allocator, try meta.dup(allocator, uncommented));
 		}
 	}
 
@@ -152,6 +153,7 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 	if (term.Exited != 0) return error.Generic;
 }
 
+/// Add packages to categorizes without installing them.
 pub fn dry_install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
@@ -163,6 +165,7 @@ pub fn dry_install(allocator: Allocator, config: *Config, args: []const [:0]u8) 
 	try transaction.write(&catman, config);
 }
 
+/// Remove packages from categorizes without uninstalling them.
 pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
@@ -174,6 +177,8 @@ pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8
 	try transaction.delete(&catman, config);
 }
 
+/// List all created categories. The optinal argument is the separator between
+/// the package names.
 pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len > 3) {
 		meta.errln("Invalid args!\nSee 'pakt help' for correct usage!", .{});
@@ -190,10 +195,11 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 
 	const string = try std.mem.join(allocator, separator, cat_list.data.items);
 	defer allocator.free(string);
-
 	meta.print("{s}\n", .{string});
 }
 
+/// List the package names written in the given categories or custom files,
+/// without comments.
 pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
 		meta.errln(
@@ -227,6 +233,7 @@ pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	}
 }
 
+/// List the names of the categories containing at least one of the given package names.
 pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len < 3) {
 		meta.errln("Missing package names!\nSee 'pakt help' for correct usage!", .{});
@@ -260,9 +267,11 @@ pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 		}
 	}
 
+	// The return status should be 1 if nothing was found, similar to GNU find.
 	if (!found_something) return error.Generic;
 }
 
+/// Open category files or custom ones in your editor of choice.
 pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 3);
 	defer cmd.deinit(allocator);
@@ -286,11 +295,18 @@ pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (term.Exited != 0) return error.Generic;
 }
 
+/// Delete one or more category files.
 pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	var stdin_buf: [128]u8 = undefined;
 	var stdin = std.fs.File.stdin().reader(&stdin_buf);
 
-	for (args[2..]) |arg| meta.print(" +{s}", .{arg});
+	for (args[2..]) |arg| {
+		if (!meta.startswith(arg, config.cat_syntax.?)) {
+			meta.errln("\nRegular files are like '{s}' are not supported!\n", .{arg});
+			return error.Generic;
+		}
+		meta.print(" {s}", .{arg});
+	}
 	meta.print(
 		"\nAre you sure you want to delete these categories? Type 'yes' to proceed: ",
 		.{}
@@ -304,13 +320,14 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	defer catman.deinit();
 
 	var err: ?anyerror = null;
-	for (args[2..]) |arg| catman.dir.deleteFile(arg) catch |e| {
+	for (args[2..]) |arg| catman.dir.deleteFile(arg[config.cat_syntax.?.len..]) catch |e| {
 		meta.errln("Failed to delete +{s}", .{arg});
 		err = e;
 	};
 	return err orelse {};
 }
 
+/// Perform a regular package manager operation without Pakt interpreting anything.
 pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 3);
 	defer cmd.deinit(allocator);
@@ -323,6 +340,7 @@ pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8)
 	if (term.Exited != 0) return error.Generic;
 }
 
+/// Self-explanatory, I guess.
 pub fn help(config_path: []const u8) void {
 	meta.print(
 \\pakt – a package manager wrapper with support for categorizing
