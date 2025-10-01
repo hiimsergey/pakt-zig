@@ -10,8 +10,14 @@ const Config = @import("Config.zig");
 
 const Self = @This();
 
-const StringListOwned = struct {
+pub const StringListOwned = struct {
 	data: ArrayList([]const u8),
+
+	pub fn init(allocator: Allocator, n: usize) !StringListOwned {
+		return .{
+			.data = try ArrayList([]const u8).initCapacity(allocator, n)
+		};
+	}
 
 	pub fn deinit(self: *StringListOwned, allocator: Allocator) void {
 		for (self.data.items) |item| allocator.free(item);

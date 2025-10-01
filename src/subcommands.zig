@@ -93,6 +93,27 @@ pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8
 	return 0;
 }
 
+pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
+	if (args.len > 3) {
+		meta.errln("Invalid args!\nSee 'pakt help' for correct usage!", .{});
+		return 1;
+	}
+	const separator: []const u8 = if (args.len < 3) "\n" else args[2];
+
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var cat_pool = Categories.StringListOwned.init(allocator, 8) catch return 1;
+	defer cat_pool.deinit(allocator);
+	catman.append_all_cat_names(allocator, &cat_pool.data) catch return 1;
+
+	const string = std.mem.join(allocator, separator, cat_pool.data.items) catch return 1;
+	defer allocator.free(string);
+
+	meta.println("{s}", .{string});
+	return 0;
+}
+
 pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
 	defer cmd.deinit(allocator);

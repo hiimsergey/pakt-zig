@@ -17,8 +17,14 @@ pub fn startswith(haystack: []const u8, needle: []const u8) bool {
 	return std.mem.startsWith(u8, haystack, needle);
 }
 
+var stdout_buf: [2048]u8 = undefined;
 var stderr_buf: [1024]u8 = undefined;
+var stdout = std.fs.File.stdout().writer(&stdout_buf);
 var stderr = std.fs.File.stderr().writer(&stderr_buf);
+
+pub fn println(comptime fmt: []const u8, args: anytype) void {
+	stdout.interface.print(fmt ++ "\n", args) catch {};
+}
 
 pub fn errln(comptime fmt: []const u8, args: anytype) void {
 	stderr.interface.print("\x1b[31m" ++ fmt ++ "\n", args) catch {};
@@ -26,5 +32,6 @@ pub fn errln(comptime fmt: []const u8, args: anytype) void {
 
 /// Flush stderr.
 pub fn flush() void {
+	stdout.interface.flush() catch {};
 	stderr.interface.flush() catch {};
 }

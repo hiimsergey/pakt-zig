@@ -48,6 +48,8 @@ pub fn main() u8 {
 		subcommands.dry_install(allocator, &config.value, args)
 	else if (eql(subcommand, "dry-uninstall") or eql(subcommand, "du"))
 		subcommands.dry_uninstall(allocator, &config.value, args)
+	else if (eql(subcommand, "list") or eql(subcommand, "l"))
+		subcommands.list(allocator, &config.value, args)
 	else if (eql(subcommand, "edit") or eql(subcommand, "e"))
 		subcommands.edit(allocator, &config.value, args)
 	else if (eql(subcommand, "native") or eql(subcommand, "n"))
