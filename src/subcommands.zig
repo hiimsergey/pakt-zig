@@ -344,38 +344,5 @@ pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8)
 
 /// Self-explanatory, I guess.
 pub fn help(config_path: []const u8) void {
-	meta.print(
-\\pakt – a package manager wrapper with support for categorizing
-\\
-\\Usage:
-\\    pakt                                          perform a user-defined arbitrary action
-\\    pakt i(nstall)          (pkg [+cat ...])...   install packages
-\\    pakt u(ninstall)        (pkg [+cat ...])...   uninstall packages
-\\    pakt d(ry-)i(nstall)    (pkg [+cat ...])...   write packages into categories without
-\\                                                    installing them
-\\    pakt d(ry-)u(ninstall)  (pkg [+cat ...])...   remove packages from categories without
-\\                                                    uninstalling them
-\\    pakt s(ync-)i(nstall)   (file | +cat)...      install several packages from categories
-\\                                                    or arbitrary files
-\\    pakt s(ync-)u(ninstall) (file | +cat)...      uninstall several packages from categories
-\\                                                    or arbitary files
-\\    pakt l(ist)             (separator)           list all user-defined categories separated
-\\                                                    separated by an optional string
-\\    pakt c(at)              (file | +cat)...      list all packages in the given categories
-\\    pakt f(ind)             pkg...                list categories the given packages are in
-\\    pakt e(dit)             (file | +cat)...      edit category or arbitary files manually
-\\    pakt p(urge)            +cat...               remove entire category files
-\\    pakt n(ative)           pm-arg...             perform a regular package manager operation
-\\    pakt h(elp)                                   print this message
-\\
-\\Configuration:
-\\    {s}
-\\
-\\About:
-\\    v2.0.0  GPL-3.0  https://github.com/hiimsergey/pakt-zig
-\\    Sergey Lavrent <https://github.com/hiimsergey>
-\\    A Zig rewrite of the POSIX shell script by Sergey Lavrent and MrMineDe
-\\    https://github.com/mminl-de/pakt
-\\
-	, .{config_path});
+	meta.print(@embedFile("help.txt"), .{config_path});
 }

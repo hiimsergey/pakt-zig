@@ -1,8 +1,6 @@
-// TODO NOW error mesages for most misinputs
 // TODO FINAL document inline comments
 // in the README too
 // TODO document every config key in the README
-// TODO FINAL CONSIDER moving this repo to mminl
 
 const std = @import("std");
 const meta = @import("meta.zig");
