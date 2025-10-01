@@ -68,6 +68,51 @@ pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) u8
 	return 0;
 }
 
+pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
+	if (args.len == 2) {
+		meta.errln(
+			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
+			.{}
+		);
+		return 1;
+	}
+
+	var cmd = StringListOwned.init_capacity(allocator, 4) catch return 1;
+	defer cmd.deinit(allocator);
+	cmd.data.append(allocator, meta.dup(allocator, config.package_manager) catch return 1) catch return 1;
+	cmd.data.append(allocator, meta.dup(allocator, config.install_arg) catch return 1) catch return 1;
+
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var file_list = StringListOwned.init_capacity(allocator, 2) catch return 1;
+	defer file_list.deinit(allocator);
+	catman.write_file_list(allocator, args[2..], config, &file_list) catch return 1;
+
+	for (file_list.data.items) |path| {
+		var catfile = std.fs.openFileAbsolute(path, .{ .mode = .read_only }) catch return 1;
+		defer catfile.close();
+
+		var buf: [1024]u8 = undefined;
+		var reader = catfile.reader(&buf);
+
+		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+			const uncommented = std.mem.trim(u8, blk: {
+				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
+				break :blk line[0..hash_i];
+			}, " ");
+			const uncommented_owned = allocator.alloc(u8, uncommented.len) catch return 1;
+			@memcpy(uncommented_owned, uncommented);
+
+			cmd.data.append(allocator, uncommented_owned) catch return 1;
+		}
+	}
+
+	var child = std.process.Child.init(cmd.data.items, allocator);
+	const term = child.spawnAndWait() catch return 1;
+	return term.Exited;
+}
+
 pub fn dry_install(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
@@ -150,7 +195,7 @@ pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	return 0;
 }
 
-pub fn find(config: *Config, args: []const [:0]u8) u8 {
+pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	if (args.len < 3) {
 		meta.errln("Missing package names!\nSee 'pakt help' for correct usage!", .{});
 		return 1;
@@ -205,7 +250,7 @@ pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	return term.Exited;
 }
 
-pub fn purge(config: *const Config, args: []const [:0]u8) u8 {
+pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) u8 {
 	var stdin_buf: [128]u8 = undefined;
 	var stdin = std.fs.File.stdin().reader(&stdin_buf);
 
@@ -243,7 +288,7 @@ pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8)
 }
 
 pub fn help(config_path: []const u8) void {
-	std.debug.print(
+	meta.print(
 \\pakt – a package manager wrapper with support for categorizing
 \\
 \\Usage:

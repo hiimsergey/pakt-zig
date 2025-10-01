@@ -18,6 +18,12 @@ pub const StringListOwned = struct {
 	}
 };
 
+pub fn dup(allocator: Allocator, buf: []const u8) ![]const u8 {
+	const result = try allocator.alloc(u8, buf.len);
+	@memcpy(result, buf);
+	return result;
+}
+
 pub fn eql(lhs: []const u8, rhs: []const u8) bool {
 	return std.mem.eql(u8, lhs, rhs);
 }
