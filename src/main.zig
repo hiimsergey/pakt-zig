@@ -1,8 +1,5 @@
 // TODO FINAL COMMENT ALL
 // TODO FINAL TEST
-// json valid but incomplete
-
-// TODO remove empty cats
 
 // TODO implement optional json keys
 
@@ -32,15 +29,15 @@ pub fn main() u8 {
 	const config_path = Config.get_config_path(allocator) catch return 1;
 	defer allocator.free(config_path);
 
-	var parsed_config: Parsed(Config) =
-		Config.parse(allocator, config_path) catch return 1;
-	defer parsed_config.deinit();
+	var parse_result = Config.ConfigParseResult.init(allocator, config_path) catch
+		return 1;
+	defer parse_result.deinit(allocator);
 
 	const args = std.process.argsAlloc(allocator) catch return 1;
 	defer std.process.argsFree(allocator, args);
 
 	if (args.len == 1) {
-		parsed_config.value.call_no_arg_action(allocator) catch return 1;
+		parse_result.parsed_config.value.call_no_arg_action(allocator) catch return 1;
 		return 0;
 	}
 	const arg1 = args[1];
@@ -70,7 +67,7 @@ pub fn main() u8 {
 		.{ "native",         "n",  sc.native         }
 	}) |subcmd| {
 		if (!meta.eql(arg1, subcmd.@"0") and !meta.eql(arg1, subcmd.@"1")) continue;
-		subcmd.@"2"(allocator, &parsed_config.value, args) catch return 1;
+		subcmd.@"2"(allocator, &parse_result.parsed_config.value, args) catch return 1;
 		break;
 	} else {
 		meta.errln(

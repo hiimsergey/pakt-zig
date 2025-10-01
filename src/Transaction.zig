@@ -62,19 +62,19 @@ pub fn init(
 			expecting_comment = false;
 
 		// Wildcard token (like ++)
-		} else if (meta.eql_concat(arg, &.{ config.cat_syntax, config.cat_syntax })) {
+		} else if (meta.eql_concat(arg, &.{ config.cat_syntax.?, config.cat_syntax.? })) {
 			try catman.append_all_cat_names(allocator, &result.cat_list);
 			cats.to = result.cat_list.data.items.len;
 
 		// Category token (like +)
-		} else if (meta.startswith(arg, config.cat_syntax)) {
-			const cat_owned = try allocator.alloc(u8, arg.len - config.cat_syntax.len);
-			@memcpy(cat_owned, arg[config.cat_syntax.len..]);
+		} else if (meta.startswith(arg, config.cat_syntax.?)) {
+			const cat_owned = try allocator.alloc(u8, arg.len - config.cat_syntax.?.len);
+			@memcpy(cat_owned, arg[config.cat_syntax.?.len..]);
 			try result.cat_list.data.append(allocator, cat_owned);
 			cats.to += 1;
 
 		// Comment marker (like :)
-		} else if (meta.eql(arg, config.inline_comment_syntax)) {
+		} else if (meta.eql(arg, config.inline_comment_syntax.?)) {
 			expecting_comment = true;
 
 		// Non-Pakt flag
@@ -100,7 +100,7 @@ pub fn init(
 	if (expecting_comment) {
 		meta.errln(
 			"Missing comment after the '{s}'!\nSee 'pakt help' for correct usage!",
-			.{config.inline_comment_syntax}
+			.{config.inline_comment_syntax.?}
 		);
 		return error.ExpectedComment;
 	}
@@ -121,7 +121,7 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 			defer catfile.close();
 			try write_package(pkgdata.name, &catfile, pkgdata.comment);
 		}
-		for (config.default_cats) |cat| {
+		for (config.default_cats.?) |cat| {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try write_package(pkgdata.name, &catfile, pkgdata.comment);
@@ -135,7 +135,7 @@ pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 			var catfile = try catman.open_catfile(cat);
 			defer catfile.close();
 			try delete_package(pkgdata.name, &catfile);
-			if (config.remove_empty_cats and try catfile.getEndPos() == 0)
+			if (config.remove_empty_cats.? and try catfile.getEndPos() == 0)
 				try catman.dir.deleteFile(cat);
 		}
 	}

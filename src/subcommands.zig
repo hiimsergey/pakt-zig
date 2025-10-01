@@ -274,11 +274,15 @@ pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	defer file_list.deinit(allocator);
 	try catman.write_file_list(allocator, args[2..], config, &file_list);
 
-	try cmd.append(allocator, config.editor);
+	try cmd.append(allocator, config.editor.?);
 	try cmd.appendSlice(allocator, file_list.data.items);
 
 	var child = std.process.Child.init(cmd.items, allocator);
-	const term = try child.spawnAndWait();
+	const term = child.spawnAndWait() catch |err| {
+		if (err == error.FileNotFound)
+			meta.errln("Unkown editor: '{s}'", .{config.editor.?});
+		return err;
+	};
 	if (term.Exited != 0) return error.Generic;
 }
 
@@ -348,13 +352,10 @@ pub fn help(config_path: []const u8) void {
 \\    {s}
 \\
 \\About:
-\\    v1.1.3  GPL-3.0  https://github.com/hiimsergey/pakt-zig
+\\    v2.0.0  GPL-3.0  https://github.com/hiimsergey/pakt-zig
 \\    Sergey Lavrent <https://github.com/hiimsergey>
 \\
-\\    Based on the pakt shell script:
-\\        https://github.com/mminl-de/pakt
-\\        Sergey Lavrent <https://github.com/hiimsergey>
-\\        MrMineDe <https://github.com/mrminede>
+\\A Zig rewrite of the POSIX shell script:    https://github.com/mminl-de/pakt
 \\
 	, .{config_path});
 }

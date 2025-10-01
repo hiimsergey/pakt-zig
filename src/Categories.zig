@@ -14,7 +14,7 @@ dir: std.fs.Dir,
 
 pub fn init(config: *const Config) !Self {
 	return .{
-		.dir = try std.fs.openDirAbsolute(config.cat_path, .{ .iterate = true })
+		.dir = try std.fs.openDirAbsolute(config.cat_path.?, .{ .iterate = true })
 	};
 }
 
@@ -47,13 +47,13 @@ pub fn write_file_list(
 	file_list: *StringListOwned
 ) !void {
 	for (args) |arg| {
-		if (meta.eql_concat(arg, &.{config.cat_syntax, config.cat_syntax})) {
+		if (meta.eql_concat(arg, &.{config.cat_syntax.?, config.cat_syntax.?})) {
 			file_list.data.clearRetainingCapacity();
 			try self.append_all_cat_paths(allocator, config, file_list);
-		} else if (meta.startswith(arg, config.cat_syntax)) {
-			const cat_name = arg[config.cat_syntax.len..];
+		} else if (meta.startswith(arg, config.cat_syntax.?)) {
+			const cat_name = arg[config.cat_syntax.?.len..];
 			const cat_path =
-				try std.mem.concat(allocator, u8, &.{config.cat_path, "/", cat_name});
+				try std.mem.concat(allocator, u8, &.{config.cat_path.?, "/", cat_name});
 			try file_list.data.append(allocator, cat_path);
 		} else {
 			const arg_owned = try allocator.alloc(u8, arg.len);
@@ -72,13 +72,13 @@ pub fn write_file_list_filtered(
 	file_list: *StringListOwned
 ) !void {
 	for (args) |arg| {
-		if (meta.eql_concat(arg, &.{config.cat_syntax, config.cat_syntax})) {
+		if (meta.eql_concat(arg, &.{config.cat_syntax.?, config.cat_syntax.?})) {
 			file_list.data.clearRetainingCapacity();
 			try self.append_all_cat_paths(allocator, config, file_list);
-		} else if (meta.startswith(arg, config.cat_syntax)) {
-			const cat_name = arg[config.cat_syntax.len..];
+		} else if (meta.startswith(arg, config.cat_syntax.?)) {
+			const cat_name = arg[config.cat_syntax.?.len..];
 			const cat_path =
-				try std.mem.concat(allocator, u8, &.{config.cat_path, "/", cat_name});
+				try std.mem.concat(allocator, u8, &.{config.cat_path.?, "/", cat_name});
 			try file_list.data.append(allocator, cat_path);
 		} else {
 			const arg_owned = try allocator.alloc(u8, arg.len);
@@ -96,7 +96,7 @@ fn append_all_cat_paths(
 ) !void {
 	var it = self.dir.iterate();
 	while (try it.next()) |entry| {
-		const path = try std.mem.concat(allocator, u8, &.{config.cat_path, "/", entry.name});
+		const path = try std.mem.concat(allocator, u8, &.{config.cat_path.?, "/", entry.name});
 		try cat_list.data.append(allocator, path);
 	}
 }
