@@ -23,7 +23,7 @@ pub const AllocatorWrapper = if (builtin.mode == .Debug) struct {
 	/// the program contains Zig-side memory leaks.
 	pub fn deinit(self: *Self) void {
 		if (self.dbg_state.deinit() == .leak)
-			std.debug.print("ERROR: Leaks found!", .{});
+			std.debug.print("ERROR: Leaks found!\n", .{});
 	}
 } else struct {
 	const Self = @This();

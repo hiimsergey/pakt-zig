@@ -7,7 +7,6 @@ const meta = @import("meta.zig");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
-const ArgIterator = std.process.ArgIterator;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
 
@@ -36,25 +35,26 @@ cat_pool: ArrayList([]const u8),
 
 pub fn init(
 	allocator: Allocator,
-	args: *ArgIterator,
+	args: []const [:0]u8,
 	catman: *const Categories,
 	config: *Config,
-	cmd: *ArrayList([]const u8)
+	cmd: ?*ArrayList([]const u8)
 ) !Self {
+	if (args.len < 3) {
+		meta.fail("Missing package names!\nSee 'pakt help' for correct usage!", .{});
+		return error.ExpectedArgs;
+	}
+
 	var result = Self{
 		.data = try ArrayList(PackageData).initCapacity(allocator, 2),
 		.cat_pool = try ArrayList([]const u8).initCapacity(allocator, 2)
 	};
 
-	var no_args = true;
 	var expecting_comment = false;
-
 	var pkgs = ISlice{ .from = 0, .to = 0 };
 	var cats = ISlice{ .from = 0, .to = 0 };
 
-	while (args.next()) |arg| {
-		no_args = false;
-
+	for (args[2..]) |arg| {
 		// Handle incoming comment
 		if (expecting_comment) {
 			result.data.items[result.data.items.len - 1].comment = arg;
@@ -67,7 +67,9 @@ pub fn init(
 
 		// Category token (like +)
 		} else if (meta.startswith(arg, config.cat_syntax)) {
-			try result.cat_pool.append(allocator, arg[config.cat_syntax.len..]);
+			const cat_owned = try allocator.alloc(u8, arg.len - config.cat_syntax.len);
+			@memcpy(cat_owned, arg[config.cat_syntax.len..]);
+			try result.cat_pool.append(allocator, cat_owned);
 			cats.to += 1;
 
 		// Comment marker (like :)
@@ -76,7 +78,7 @@ pub fn init(
 
 		// Non-Pakt flag
 		} else if (meta.startswith(arg, "-")) {
-			try cmd.append(allocator, arg);
+			if (cmd) |c| try c.append(allocator, arg);
 
 		// Probably a package
 		} else {
@@ -90,14 +92,10 @@ pub fn init(
 				.comment = null
 			});
 			pkgs.to += 1;
-			try cmd.append(allocator, arg);
+			if (cmd) |c| try c.append(allocator, arg);
 		}
 	}
-	
-	if (no_args) {
-		meta.fail("Missing package names!\nSee 'pakt help' for correct usage!", .{});
-		return error.ExpectedArgs;
-	}
+
 	if (expecting_comment) {
 		meta.fail(
 			"Missing comment after the '{s}'!\nSee 'pakt help' for correct usage!",
@@ -164,7 +162,7 @@ fn write_package(pkg: []const u8, file: *std.fs.File, comment: ?[]const u8) !voi
 	var writer = file.writer(&buf);
 	try writer.seekTo(try file.getEndPos());
 	if (comment) |com| _ = try writer.interface.print("{s} # {s}\n", .{pkg, com})
-	else _ = try writer.interface.write(pkg);
+	else _ = try writer.interface.print("{s}\n", .{pkg});
 
 	try writer.interface.flush();
 }

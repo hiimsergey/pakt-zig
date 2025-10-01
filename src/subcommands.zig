@@ -2,23 +2,24 @@ const std = @import("std");
 const meta = @import("meta.zig");
 
 const Allocator = std.mem.Allocator;
-const ArgIterator = std.process.ArgIterator;
 const ArrayList = std.ArrayList;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
 const Transaction = @import("Transaction.zig");
 
-pub fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
+pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var cmd = ArrayList([]const u8).initCapacity(allocator, 4) catch return 1;
 	defer cmd.deinit(allocator);
-	cmd.appendSlice(allocator, &.{config.package_manager, config.install_arg}) catch
-		return 1;
+	cmd.appendSlice(
+		allocator,
+		&.{config.package_manager, config.uninstall_arg}
+	) catch return 1;
 
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
 
-	var transaction = Transaction.init(allocator, args, &catman, config, &cmd) catch
-		return 1;
+	var transaction =
+		Transaction.init(allocator, args, &catman, config, &cmd) catch return 1;
 	defer transaction.deinit(allocator);
 
 	var child = std.process.Child.init(cmd.items, allocator);
@@ -36,17 +37,19 @@ pub fn install(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	return 0;
 }
 
-pub fn uninstall(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
+pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
 	var cmd = ArrayList([]const u8).initCapacity(allocator, 4) catch return 1;
 	defer cmd.deinit(allocator);
-	cmd.appendSlice(allocator, &.{config.package_manager, config.uninstall_arg}) catch
-		return 1;
+	cmd.appendSlice(
+		allocator,
+		&.{config.package_manager, config.uninstall_arg}
+	) catch return 1;
 
 	var catman = Categories.init(config) catch return 1;
 	defer catman.deinit();
 
-	var transaction = Transaction.init(allocator, args, &catman, config, &cmd) catch
-		return 1;
+	var transaction =
+		Transaction.init(allocator, args, &catman, config, &cmd) catch return 1;
 	defer transaction.deinit(allocator);
 
 	var child = std.process.Child.init(cmd.items, allocator);
@@ -64,12 +67,38 @@ pub fn uninstall(allocator: Allocator, config: *Config, args: *ArgIterator) u8 {
 	return 0;
 }
 
-pub fn native(allocator: Allocator, config: *const Config, args: *ArgIterator) u8 {
+pub fn dry_install(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var transaction =
+		Transaction.init(allocator, args, &catman, config, null) catch return 1;
+	defer transaction.deinit(allocator);
+
+	// The categorizing in question
+	transaction.write(&catman, config) catch return 1;
+	return 0;
+}
+
+pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) u8 {
+	var catman = Categories.init(config) catch return 1;
+	defer catman.deinit();
+
+	var transaction =
+		Transaction.init(allocator, args, &catman, config, null) catch return 1;
+	defer transaction.deinit(allocator);
+
+	// The decategorizing in question
+	transaction.delete(&catman) catch return 1;
+	return 0;
+}
+
+pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8) u8 {
 	var cmd = ArrayList([]const u8).initCapacity(allocator, 3) catch return 1;
 	defer cmd.deinit(allocator);
 
 	cmd.append(allocator, config.package_manager) catch return 1;
-	while (args.next()) |arg| cmd.append(allocator, arg) catch return 1;
+	cmd.appendSlice(allocator, args[2..]) catch return 1;
 
 	var child = std.process.Child.init(cmd.items, allocator);
 	const term = child.spawnAndWait() catch return 1;
