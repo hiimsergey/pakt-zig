@@ -1,7 +1,3 @@
-// TODO FINAL document inline comments
-// in the README too
-// TODO document every config key in the README
-
 const std = @import("std");
 const meta = @import("meta.zig");
 const sc = @import("subcommands.zig");

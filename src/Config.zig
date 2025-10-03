@@ -5,19 +5,6 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Parsed = std.json.Parsed;
 
-const Self = @This();
-
-cat_path: ?[]const u8 = null,
-editor: ?[]const u8 = null,
-package_manager: []const []const u8,
-install_args: []const []const u8,
-uninstall_args: []const []const u8,
-cat_syntax: ?[]const u8 = null,
-inline_comment_syntax: ?[]const u8 = null,
-no_arg_action: ?[]const []const u8 = null,
-default_cats: ?[]const []const u8 = null,
-remove_empty_cats: ?bool = null,
-
 /// A struct wrapping both the JSON parsing result and a flag about whether
 /// to free a string option or not.
 pub const ConfigParseResult = struct {
@@ -71,6 +58,19 @@ pub const ConfigParseResult = struct {
 		self.parsed_config.deinit();
 	}
 };
+
+const Self = @This();
+
+cat_path: ?[]const u8 = null,
+editor: ?[]const u8 = null,
+package_manager: []const []const u8,
+install_args: []const []const u8,
+uninstall_args: []const []const u8,
+cat_syntax: ?[]const u8 = null,
+inline_comment_syntax: ?[]const u8 = null,
+no_arg_action: ?[]const []const u8 = null,
+default_cats: ?[]const []const u8 = null,
+remove_empty_cats: ?bool = null,
 
 /// Determines the absolute path of the pakt.json config by reading the $PAKT_CONF_PATH
 /// or $XDG_CONFIG_HOME environment variables.

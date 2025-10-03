@@ -317,7 +317,8 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	defer catman.deinit();
 
 	var err: ?anyerror = null;
-	for (args[2..]) |arg| catman.dir.deleteFile(arg[config.cat_syntax.?.len..]) catch |e| {
+	for (args[2..]) |arg| catman.dir.deleteFile(arg[config.cat_syntax.?.len..])
+	catch |e| {
 		meta.errln("Failed to delete +{s}", .{arg});
 		err = e;
 	};
