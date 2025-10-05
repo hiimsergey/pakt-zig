@@ -13,7 +13,7 @@ pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !voi
 	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
 	defer cmd.deinit(allocator);
 	try cmd.appendSlice(allocator, config.package_manager);
-	try cmd.appendSlice(allocator, config.uninstall_args);
+	try cmd.appendSlice(allocator, config.install_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
