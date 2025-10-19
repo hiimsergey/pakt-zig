@@ -80,9 +80,7 @@ pub fn write_file_list(
 			);
 			try file_list.data.append(allocator, cat_path);
 		} else {
-			const arg_owned = try allocator.alloc(u8, arg.len);
-			@memcpy(arg_owned, arg);
-			try file_list.data.append(allocator, arg_owned);
+			try file_list.data.append(allocator, try meta.dup(allocator, arg));
 		}
 	}
 }

@@ -64,29 +64,28 @@ pub fn init(
 		if (expecting_comment) {
 			result.data.items[result.data.items.len - 1].comment = arg;
 			expecting_comment = false;
-
+		}
 		// Wildcard token (like ++)
-		} else if (meta.eql_concat(arg, &.{ config.cat_syntax.?, config.cat_syntax.? })) {
+		else if (meta.eql_concat(arg, &.{ config.cat_syntax.?, config.cat_syntax.? })) {
 			try catman.append_all_cat_names(allocator, &result.cat_list);
 			cats.to = result.cat_list.data.items.len;
-
+		}
 		// Category token (like +)
-		} else if (meta.startswith(arg, config.cat_syntax.?)) {
-			const cat_owned = try allocator.alloc(u8, arg.len - config.cat_syntax.?.len);
-			@memcpy(cat_owned, arg[config.cat_syntax.?.len..]);
-			try result.cat_list.data.append(allocator, cat_owned);
+		else if (meta.startswith(arg, config.cat_syntax.?)) {
+			const cat_dup = try meta.dup(allocator, arg[config.cat_syntax.?.len..]);
+			try result.cat_list.data.append(allocator, cat_dup);
 			cats.to += 1;
-
+		}
 		// Comment marker (like :)
-		} else if (meta.eql(arg, config.inline_comment_syntax.?)) {
+		else if (meta.eql(arg, config.inline_comment_syntax.?)) {
 			expecting_comment = true;
-
+		}
 		// Non-Pakt flag
-		} else if (meta.startswith(arg, "-")) {
+		else if (meta.startswith(arg, "-")) {
 			if (cmd) |c| try c.append(allocator, arg);
-
+		}
 		// Probably a package
-		} else {
+		else {
 			// A package comes after a category declaration, meaning we have
 			// to reset the temporary descriptors.
 			if (cats.to - cats.from > 0)

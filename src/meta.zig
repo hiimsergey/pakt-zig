@@ -32,7 +32,7 @@ pub fn eql(a: []const u8, b: []const u8) bool {
 	return std.mem.eql(u8, a, b);
 }
 
-/// Compares `a` with a concatenation of all parts of `b`.
+/// Compare `a` with a concatenation of all parts of `b`.
 pub fn eql_concat(a: []const u8, b: []const []const u8) bool {
 	var offset: usize = 0;
 	for (b) |part| {
