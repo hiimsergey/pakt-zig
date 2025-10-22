@@ -220,12 +220,13 @@ pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 		var buf: [1024]u8 = undefined;
 		var reader = file.reader(&buf);
 
-		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line|
+		: (reader.interface.toss(1)) {
 			const uncommented = std.mem.trim(u8, blk: {
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			meta.print("{s}\n", .{uncommented});
+			if (uncommented.len > 0) meta.print("{s}\n", .{uncommented});
 		}
 	}
 }
