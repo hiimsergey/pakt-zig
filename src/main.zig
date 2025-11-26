@@ -24,8 +24,7 @@ pub fn main() u8 {
 	const config_path = Config.get_config_path(allocator) catch return 1;
 	defer allocator.free(config_path);
 
-	var parse_result = Config.ConfigParseResult.init(allocator, config_path) catch
-		return 1;
+	var parse_result = Config.ParseResult.init(allocator, config_path) catch return 1;
 	defer parse_result.deinit(allocator);
 
 	const args = std.process.argsAlloc(allocator) catch return 1;
@@ -35,19 +34,17 @@ pub fn main() u8 {
 		parse_result.parsed_config.value.call_no_arg_action(allocator) catch return 1;
 		return 0;
 	}
-	const arg1 = args[1];
 
-	if (meta.eql(arg1, "help") or meta.eql(arg1, "h")) {
+	if (meta.eql(args[1], "help") or meta.eql(args[1], "h")) {
 		sc.help(config_path);
 		return 0;
 	}
 
-	const Description = struct {
+	for ([_]struct {
 		[]const u8,
 		[]const u8,
 		*const fn (Allocator, *Config, []const [:0]u8) anyerror!void
-	};
-	for ([_]Description{
+	}{
 		.{ "install",        "i",  sc.install        },
 		.{ "uninstall",      "u",  sc.uninstall      },
 		.{ "sync-install",   "si", sc.sync_install   },
@@ -61,13 +58,13 @@ pub fn main() u8 {
 		.{ "purge",          "p",  sc.purge          },
 		.{ "native",         "n",  sc.native         }
 	}) |subcmd| {
-		if (!meta.eql(arg1, subcmd.@"0") and !meta.eql(arg1, subcmd.@"1")) continue;
+		if (!meta.eql(args[1], subcmd.@"0") and !meta.eql(args[1], subcmd.@"1")) continue;
 		subcmd.@"2"(allocator, &parse_result.parsed_config.value, args) catch return 1;
 		break;
 	} else {
 		meta.errln(
 			"Invalid subcommand '{s}'!\nSee 'pakt help' for available options!",
-			.{arg1}
+			.{args[1]}
 		);
 		return 2;
 	}

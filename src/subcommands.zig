@@ -133,7 +133,7 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 		var buf: [1024]u8 = undefined;
 		var reader = catfile.reader(&buf);
 
-		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+		while (reader.interface.takeDelimiter('\n') catch null) |line| {
 			const uncommented = std.mem.trim(u8, blk: {
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
@@ -220,7 +220,7 @@ pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 		var buf: [1024]u8 = undefined;
 		var reader = file.reader(&buf);
 
-		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+		while (reader.interface.takeDelimiter('\n') catch null) |line| {
 			const uncommented = std.mem.trim(u8, blk: {
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
@@ -250,7 +250,7 @@ pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 		defer catfile.close();
 
 		var reader = catfile.reader(&buf);
-		while (reader.interface.takeDelimiterExclusive('\n') catch null) |line| {
+		while (reader.interface.takeDelimiter('\n') catch null) |line| {
 			const uncommented = std.mem.trim(u8, blk: {
 				const hash_i =
 					std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;

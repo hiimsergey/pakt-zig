@@ -5,14 +5,26 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Parsed = std.json.Parsed;
 
+const Config = @This();
+cat_path: ?[]const u8 = null,
+editor: ?[]const u8 = "nano",
+package_manager: []const []const u8,
+install_args: []const []const u8,
+uninstall_args: []const []const u8,
+cat_syntax: ?[]const u8 = "+",
+inline_comment_syntax: ?[]const u8 = ":",
+no_arg_action: ?[]const []const u8 = &.{"pakt", "help"},
+default_cats: ?[]const []const u8 = &.{},
+remove_empty_cats: ?bool = true,
+
 /// A struct wrapping both the JSON parsing result and a flag about whether
 /// to free a string option or not.
-pub const ConfigParseResult = struct {
-	parsed_config: Parsed(Self),
+pub const ParseResult = struct {
+	parsed_config: Parsed(Config),
 	cat_path_is_owned: bool,
 
 	/// Parse the JSON file at `config_path` and instantiate this result struct.
-	pub fn init(allocator: Allocator, config_path: []const u8) !ConfigParseResult {
+	pub fn init(allocator: Allocator, config_path: []const u8) !ParseResult {
 		const pakt_conf: []u8 = std.fs.cwd().readFileAlloc(
 			allocator,
 			config_path,
@@ -27,8 +39,8 @@ pub const ConfigParseResult = struct {
 		};
 		defer allocator.free(pakt_conf);
 
-		var parsed: Parsed(Self) = std.json.parseFromSlice(
-			Self,
+		var parsed: Parsed(Config) = std.json.parseFromSlice(
+			Config,
 			allocator, pakt_conf, .{ .allocate = .alloc_always }
 		) catch |err| {
 			switch (err) {
@@ -53,24 +65,11 @@ pub const ConfigParseResult = struct {
 	}
 
 	/// Free a string option if it's owned by us and free the JSON parsing result.
-	pub fn deinit(self: *ConfigParseResult, allocator: Allocator) void {
+	pub fn deinit(self: *ParseResult, allocator: Allocator) void {
 		if (self.cat_path_is_owned) allocator.free(self.parsed_config.value.cat_path.?);
 		self.parsed_config.deinit();
 	}
 };
-
-const Self = @This();
-
-cat_path: ?[]const u8 = null,
-editor: ?[]const u8 = "nano",
-package_manager: []const []const u8,
-install_args: []const []const u8,
-uninstall_args: []const []const u8,
-cat_syntax: ?[]const u8 = "+",
-inline_comment_syntax: ?[]const u8 = ":",
-no_arg_action: ?[]const []const u8 = &.{"pakt", "help"},
-default_cats: ?[]const []const u8 = &.{},
-remove_empty_cats: ?bool = true,
 
 /// Determines the absolute path of the pakt.json config by reading the $PAKT_CONF_PATH
 /// or $XDG_CONFIG_HOME environment variables.
@@ -89,7 +88,7 @@ pub fn get_config_path(allocator: Allocator) ![]const u8 {
 }
 
 /// Run the user-defined no_arg_action.
-pub fn call_no_arg_action(self: *Self, allocator: Allocator) !void {
+pub fn call_no_arg_action(self: *Config, allocator: Allocator) !void {
 	var child = std.process.Child.init(self.no_arg_action.?, allocator);
 	const term = child.spawnAndWait() catch {
 		const command = try std.mem.concat(allocator, u8, self.no_arg_action.?);
@@ -101,8 +100,8 @@ pub fn call_no_arg_action(self: *Self, allocator: Allocator) !void {
 }
 
 /// Write the hard-coded default value for the cat_path option, if it's null.
-/// Return whether the `cat_path` option is owned by this instance or not.
-fn set_default_cat_path(self: *Self, allocator: Allocator) !bool {
+/// Returns whether the `cat_path` option is owned by this instance or not.
+fn set_default_cat_path(self: *Config, allocator: Allocator) !bool {
 	const result = self.cat_path == null;
 	self.cat_path = self.cat_path orelse blk: {
 		const share = std.process.getEnvVarOwned(allocator, "XDG_DATA_HOME") catch {
