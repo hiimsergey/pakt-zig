@@ -8,7 +8,7 @@ const ArrayList = std.ArrayList;
 pub const StringListOwned = struct {
 	data: ArrayList([]const u8),
 
-	pub fn init_capacity(allocator: Allocator, n: usize) !StringListOwned {
+	pub fn init_capacity(allocator: Allocator, n: usize) Allocator.Error!StringListOwned {
 		return .{
 			.data = try ArrayList([]const u8).initCapacity(allocator, n)
 		};
@@ -21,7 +21,7 @@ pub const StringListOwned = struct {
 };
 
 /// Clone a string.
-pub fn dup(allocator: Allocator, buf: []const u8) ![]const u8 {
+pub fn dup(allocator: Allocator, buf: []const u8) Allocator.Error![]const u8 {
 	const result = try allocator.alloc(u8, buf.len);
 	@memcpy(result, buf);
 	return result;
@@ -59,7 +59,8 @@ pub fn print(comptime fmt: []const u8, args: anytype) void {
 
 /// Buffered stderr printing, with a trailing newline.
 pub fn errln(comptime fmt: []const u8, args: anytype) void {
-	stderr.interface.print("\x1b[31m" ++ fmt ++ "\n", args) catch {};
+	stderr.interface.print("\x1b[31mpakt: ", .{}) catch {};
+	stderr.interface.print(fmt ++ "\n", args) catch {};
 }
 
 /// Flush stdout.

@@ -136,18 +136,12 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 /// Remove packages from the involved categories' files.
 pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
-		std.debug.print("TODO handling {s}\n", .{pkgdata.name});
 		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
-			std.debug.print("    slice\n", .{});
 			var catfile = try catman.open_catfile(cat);
-			std.debug.print("    open catfile\n", .{});
 			defer catfile.close();
 			try delete_package(pkgdata.name, &catfile);
-			std.debug.print("    try del pkg\n", .{});
-			if (config.remove_empty_cats.? and try catfile.getEndPos() == 0) {
-				std.debug.print("    try catman dir deleteFile\n", .{});
+			if (config.remove_empty_cats.? and try catfile.getEndPos() == 0)
 				try catman.dir.deleteFile(cat);
-			}
 		}
 	}
 }
@@ -190,7 +184,6 @@ fn delete_package(pkg: []const u8, file: *std.fs.File) !void {
 	var reader = file.reader(&rbuf);
 
 	while (reader.interface.takeDelimiter('\n') catch null) |line| {
-		std.debug.print("    TODO something\n", .{});
 		const uncommented = std.mem.trim(u8, blk: {
 			const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 			break :blk line[0..hash_i];
