@@ -5,6 +5,9 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Parsed = std.json.Parsed;
 
+const TEXT_CONFIG_REFERENCE =
+	"See https://github.com/hiimsergey/pakt-zig for a correct config.";
+
 const Config = @This();
 cat_path: ?[]const u8 = null,
 editor: ?[]const u8 = "nano",
@@ -31,8 +34,10 @@ pub const ParseResult = struct {
 			std.math.maxInt(u16)
 		) catch |err| {
 			switch (err) {
-				std.fs.File.OpenError.FileNotFound =>
-					meta.errln("Config file at {s} not found!", .{config_path}),
+				std.fs.File.OpenError.FileNotFound => {
+					meta.errln("Config file at {s} not found!", .{config_path});
+					meta.errln(TEXT_CONFIG_REFERENCE, .{});
+				},
 				else => meta.errln("Couldn't open config file!", .{})
 			}
 			return err;
@@ -44,8 +49,10 @@ pub const ParseResult = struct {
 			allocator, pakt_conf, .{ .allocate = .alloc_always }
 		) catch |err| {
 			switch (err) {
-				error.UnexpectedToken =>
-					meta.errln("Failed to parse config! Unexpected token!", .{}),
+				error.UnexpectedToken => {
+					meta.errln("Failed to parse config! Unexpected token!", .{});
+					meta.errln(TEXT_CONFIG_REFERENCE, .{});
+				},
 				else => meta.errln(
 					\\Failed to parse config!
 					\\It was not a syntax error for sure but idk what else.
