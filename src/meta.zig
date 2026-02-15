@@ -8,21 +8,21 @@ const ArrayList = std.ArrayList;
 pub const StringListOwned = struct {
 	data: ArrayList([]const u8),
 
-	pub fn init_capacity(allocator: Allocator, n: usize) Allocator.Error!StringListOwned {
+	pub fn initCapacity(gpa: Allocator, n: usize) Allocator.Error!StringListOwned {
 		return .{
-			.data = try ArrayList([]const u8).initCapacity(allocator, n)
+			.data = try ArrayList([]const u8).initCapacity(gpa, n)
 		};
 	}
 
-	pub fn deinit(self: *StringListOwned, allocator: Allocator) void {
-		for (self.data.items) |item| allocator.free(item);
-		self.data.deinit(allocator);
+	pub fn deinit(self: *StringListOwned, gpa: Allocator) void {
+		for (self.data.items) |item| gpa.free(item);
+		self.data.deinit(gpa);
 	}
 };
 
 /// Clone a string.
-pub fn dup(allocator: Allocator, buf: []const u8) Allocator.Error![]const u8 {
-	const result = try allocator.alloc(u8, buf.len);
+pub fn dup(gpa: Allocator, buf: []const u8) Allocator.Error![]const u8 {
+	const result = try gpa.alloc(u8, buf.len);
 	@memcpy(result, buf);
 	return result;
 }
@@ -33,7 +33,7 @@ pub fn eql(a: []const u8, b: []const u8) bool {
 }
 
 /// Compare `a` with a concatenation of all parts of `b`.
-pub fn eql_concat(a: []const u8, b: []const []const u8) bool {
+pub fn eqlConcat(a: []const u8, b: []const []const u8) bool {
 	var offset: usize = 0;
 	for (b) |part| {
 		if (!eql(a[offset..offset + part.len], part)) return false;

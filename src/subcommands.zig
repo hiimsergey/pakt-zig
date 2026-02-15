@@ -9,19 +9,19 @@ const StringListOwned = meta.StringListOwned;
 const Transaction = @import("Transaction.zig");
 
 /// Install packages, write them into categories and/or give them inline comments.
-pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
-	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
-	defer cmd.deinit(allocator);
-	try cmd.appendSlice(allocator, config.package_manager);
-	try cmd.appendSlice(allocator, config.install_args);
+pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
+	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
+	defer cmd.deinit(gpa);
+	try cmd.appendSlice(gpa, config.package_manager);
+	try cmd.appendSlice(gpa, config.install_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var transaction = try Transaction.init(allocator, args, &catman, config, &cmd);
-	defer transaction.deinit(allocator);
+	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
+	defer transaction.deinit(gpa);
 
-	var child = std.process.Child.init(cmd.items, allocator);
+	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) {
 		meta.errln(
@@ -36,19 +36,19 @@ pub fn install(allocator: Allocator, config: *Config, args: []const [:0]u8) !voi
 }
 
 /// Uninstall packages and/or remove them from categories.
-pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
-	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
-	defer cmd.deinit(allocator);
-	try cmd.appendSlice(allocator, config.package_manager);
-	try cmd.appendSlice(allocator, config.uninstall_args);
+pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
+	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
+	defer cmd.deinit(gpa);
+	try cmd.appendSlice(gpa, config.package_manager);
+	try cmd.appendSlice(gpa, config.uninstall_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var transaction = try Transaction.init(allocator, args, &catman, config, &cmd);
-	defer transaction.deinit(allocator);
+	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
+	defer transaction.deinit(gpa);
 
-	var child = std.process.Child.init(cmd.items, allocator);
+	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) {
 		meta.errln(
@@ -63,7 +63,7 @@ pub fn uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !v
 }
 
 /// Bulk-install packages from category files or custom files.
-pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
+pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
 		meta.errln(
 			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
@@ -72,17 +72,17 @@ pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8)
 		return error.Generic;
 	}
 
-	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
-	defer cmd.deinit(allocator);
-	try cmd.appendSlice(allocator, config.package_manager);
-	try cmd.appendSlice(allocator, config.install_args);
+	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
+	defer cmd.deinit(gpa);
+	try cmd.appendSlice(gpa, config.package_manager);
+	try cmd.appendSlice(gpa, config.install_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.init_capacity(allocator, 2);
-	defer file_list.deinit(allocator);
-	try catman.write_file_list(allocator, args[2..], config, &file_list);
+	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	defer file_list.deinit(gpa);
+	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
 		var catfile = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
@@ -96,16 +96,16 @@ pub fn sync_install(allocator: Allocator, config: *Config, args: []const [:0]u8)
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			try cmd.append(allocator, uncommented);
+			try cmd.append(gpa, uncommented);
 		}
 	}
 
-	var child = std.process.Child.init(cmd.items, allocator);
+	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) return error.Generic;
 }
 
-pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
+pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
 		meta.errln(
 			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
@@ -114,17 +114,17 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 		return error.Generic;
 	}
 
-	var cmd = try ArrayList([]const u8).initCapacity(allocator, 4);
-	defer cmd.deinit(allocator);
-	try cmd.appendSlice(allocator, config.package_manager);
-	try cmd.appendSlice(allocator, config.uninstall_args);
+	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
+	defer cmd.deinit(gpa);
+	try cmd.appendSlice(gpa, config.package_manager);
+	try cmd.appendSlice(gpa, config.uninstall_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.init_capacity(allocator, 2);
-	defer file_list.deinit(allocator);
-	try catman.write_file_list(allocator, args[2..], config, &file_list);
+	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	defer file_list.deinit(gpa);
+	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
 		var catfile = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
@@ -138,34 +138,34 @@ pub fn sync_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u
 				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
-			try cmd.append(allocator, uncommented);
+			try cmd.append(gpa, uncommented);
 		}
 	}
 
-	var child = std.process.Child.init(cmd.items, allocator);
+	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) return error.Generic;
 }
 
 /// Add packages to categorizes without installing them.
-pub fn dry_install(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
+pub fn dryInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var transaction = try Transaction.init(allocator, args, &catman, config, null);
-	defer transaction.deinit(allocator);
+	var transaction = try Transaction.init(gpa, args, &catman, config, null);
+	defer transaction.deinit(gpa);
 
 	// The categorizing in question
 	try transaction.write(&catman, config);
 }
 
 /// Remove packages from categorizes without uninstalling them.
-pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
+pub fn dryUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var transaction = try Transaction.init(allocator, args, &catman, config, null);
-	defer transaction.deinit(allocator);
+	var transaction = try Transaction.init(gpa, args, &catman, config, null);
+	defer transaction.deinit(gpa);
 
 	// The decategorizing in question
 	try transaction.delete(&catman, config);
@@ -173,7 +173,7 @@ pub fn dry_uninstall(allocator: Allocator, config: *Config, args: []const [:0]u8
 
 /// List all created categories. The optinal argument is the separator between
 /// the package names.
-pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
+pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len > 3) {
 		meta.errln("Invalid args!\nSee 'pakt help' for correct usage!", .{});
 		return error.Generic;
@@ -183,18 +183,18 @@ pub fn list(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var cat_list = try StringListOwned.init_capacity(allocator, 8);
-	defer cat_list.deinit(allocator);
-	try catman.append_all_cat_names(allocator, &cat_list);
+	var cat_list = try StringListOwned.initCapacity(gpa, 8);
+	defer cat_list.deinit(gpa);
+	try catman.appendAllCatNames(gpa, &cat_list);
 
-	const string = try std.mem.join(allocator, separator, cat_list.data.items);
-	defer allocator.free(string);
+	const string = try std.mem.join(gpa, separator, cat_list.data.items);
+	defer gpa.free(string);
 	meta.print("{s}\n", .{string});
 }
 
 /// List the package names written in the given categories or custom files,
 /// without comments.
-pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
+pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
 		meta.errln(
 			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
@@ -206,9 +206,9 @@ pub fn cat(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.init_capacity(allocator, 2);
-	defer file_list.deinit(allocator);
-	try catman.write_file_list(allocator, args[2..], config, &file_list);
+	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	defer file_list.deinit(gpa);
+	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
 		var file = std.fs.openFileAbsolute(path, .{ .mode = .read_only }) catch |err| {
@@ -246,7 +246,7 @@ pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var it = catman.dir.iterate();
 
 	cat: while (try it.next()) |entry| {
-		var catfile = try catman.open_catfile(entry.name);
+		var catfile = try catman.openCatfile(entry.name);
 		defer catfile.close();
 
 		var reader = catfile.reader(&buf);
@@ -269,21 +269,21 @@ pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 }
 
 /// Open category files or custom ones in your editor of choice.
-pub fn edit(allocator: Allocator, config: *Config, args: []const [:0]u8) !void {
-	var cmd = try ArrayList([]const u8).initCapacity(allocator, 3);
-	defer cmd.deinit(allocator);
+pub fn edit(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
+	var cmd = try ArrayList([]const u8).initCapacity(gpa, 3);
+	defer cmd.deinit(gpa);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.init_capacity(allocator, 2);
-	defer file_list.deinit(allocator);
-	try catman.write_file_list(allocator, args[2..], config, &file_list);
+	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	defer file_list.deinit(gpa);
+	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
-	try cmd.append(allocator, config.editor.?);
-	try cmd.appendSlice(allocator, file_list.data.items);
+	try cmd.append(gpa, config.editor.?);
+	try cmd.appendSlice(gpa, file_list.data.items);
 
-	var child = std.process.Child.init(cmd.items, allocator);
+	var child = std.process.Child.init(cmd.items, gpa);
 	const term = child.spawnAndWait() catch |err| {
 		if (err == error.FileNotFound)
 			meta.errln("Unkown editor: '{s}'", .{config.editor.?});
@@ -326,17 +326,17 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 }
 
 /// Perform a regular package manager operation without Pakt interpreting anything.
-pub fn native(allocator: Allocator, config: *const Config, args: []const [:0]u8) !void {
-	var cmd = try ArrayList([]const u8).initCapacity(allocator, 3);
-	defer cmd.deinit(allocator);
+pub fn native(gpa: Allocator, config: *const Config, args: []const [:0]u8) !void {
+	var cmd = try ArrayList([]const u8).initCapacity(gpa, 3);
+	defer cmd.deinit(gpa);
 
-	try cmd.appendSlice(allocator, config.package_manager);
-	try cmd.appendSlice(allocator, args[2..]);
+	try cmd.appendSlice(gpa, config.package_manager);
+	try cmd.appendSlice(gpa, args[2..]);
 
-	var child = std.process.Child.init(cmd.items, allocator);
+	var child = std.process.Child.init(cmd.items, gpa);
 	const term = child.spawnAndWait() catch {
-		const command = try std.mem.concat(allocator, u8, cmd.items);
-		defer allocator.free(command);
+		const command = try std.mem.concat(gpa, u8, cmd.items);
+		defer gpa.free(command);
 		meta.errln("Failed to spawn the command '{s}'", .{command});
 		return error.Generic;
 	};

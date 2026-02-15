@@ -16,8 +16,6 @@ pub fn build(b: *Build) void {
 		})
 	});
 
-	exe.linkLibC(); // Needed for `std.heap.c_allocator`
-
 	// Actual installation
 	b.installArtifact(exe);
 

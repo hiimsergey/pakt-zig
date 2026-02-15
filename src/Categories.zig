@@ -29,7 +29,7 @@ pub fn deinit(self: *Self) void {
 }
 
 /// Given a category name, open or create the respective file.
-pub fn open_catfile(self: *const Self, name: []const u8) !File {
+pub fn openCatfile(self: *const Self, name: []const u8) !File {
 	return self.dir.createFile(name, .{ .read = true, .truncate = false }) catch |err| {
 		meta.errln("Failed to open the file of the category '{s}'!", .{name});
 		return err;
@@ -37,14 +37,14 @@ pub fn open_catfile(self: *const Self, name: []const u8) !File {
 }
 
 /// Given a pointer to a `StringListOwned`, extend it with every category's name.
-pub fn append_all_cat_names(
+pub fn appendAllCatNames(
 	self: *const Self,
-	allocator: Allocator,
+	gpa: Allocator,
 	cat_list: *StringListOwned
 ) !void {
 	var it = self.dir.iterate();
 	while (try it.next()) |entry|
-		try cat_list.data.append(allocator, try meta.dup(allocator, entry.name));
+		try cat_list.data.append(gpa, try meta.dup(gpa, entry.name));
 }
 
 /// Given a pointer to a `StringListOwned`, extend it with absolute paths of
@@ -53,34 +53,34 @@ pub fn append_all_cat_names(
 /// the arg is read as-is as a file path.
 /// Just like usual, double cat syntax (++ by default) is interpreted as all
 /// category files' paths.
-pub fn write_file_list(
+pub fn writeFileList(
 	self: *const Self,
-	allocator: Allocator,
+	gpa: Allocator,
 	args: []const [:0]u8,
 	config: *Config,
 	file_list: *StringListOwned
 ) !void {
 	for (args) |arg| {
-		if (meta.eql_concat(arg, &.{config.cat_syntax.?, config.cat_syntax.?})) {
+		if (meta.eqlConcat(arg, &.{config.cat_syntax.?, config.cat_syntax.?})) {
 			var it = self.dir.iterate();
 			while (try it.next()) |entry| {
 				const path = try std.mem.concat(
-					allocator,
+					gpa,
 					u8,
 					&.{config.cat_path.?, "/", entry.name}
 				);
-				try file_list.data.append(allocator, path);
+				try file_list.data.append(gpa, path);
 			}
 		} else if (meta.startswith(arg, config.cat_syntax.?)) {
 			const cat_name = arg[config.cat_syntax.?.len..];
 			const cat_path = try std.mem.concat(
-				allocator,
+				gpa,
 				u8,
 				&.{config.cat_path.?, "/", cat_name}
 			);
-			try file_list.data.append(allocator, cat_path);
+			try file_list.data.append(gpa, cat_path);
 		} else {
-			try file_list.data.append(allocator, try meta.dup(allocator, arg));
+			try file_list.data.append(gpa, try meta.dup(gpa, arg));
 		}
 	}
 }
