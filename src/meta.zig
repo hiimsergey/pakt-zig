@@ -20,22 +20,15 @@ pub const StringListOwned = struct {
 	}
 };
 
-/// Clone a string.
-pub fn dup(gpa: Allocator, buf: []const u8) Allocator.Error![]const u8 {
-	const result = try gpa.alloc(u8, buf.len);
-	@memcpy(result, buf);
-	return result;
-}
-
 /// Like `std.mem.eql` but for strings and shorter.
 pub fn eql(a: []const u8, b: []const u8) bool {
 	return std.mem.eql(u8, a, b);
 }
 
-/// Compare `a` with a concatenation of all parts of `b`.
-pub fn eqlConcat(a: []const u8, b: []const []const u8) bool {
+/// Compare `a` with a concatenation of all parts of `bs`.
+pub fn eqlConcat(a: []const u8, bs: []const []const u8) bool {
 	var offset: usize = 0;
-	for (b) |part| {
+	for (bs) |part| {
 		if (!eql(a[offset..offset + part.len], part)) return false;
 		offset += part.len;
 	}

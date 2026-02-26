@@ -71,8 +71,8 @@ pub fn init(
 		}
 		// Category token (like +)
 		else if (meta.startswith(arg, config.cat_syntax.?)) {
-			const cat_dup = try meta.dup(gpa, arg[config.cat_syntax.?.len..]);
-			try result.cat_list.data.append(gpa, cat_dup);
+			const cat_dupe = try gpa.dupe(u8, arg[config.cat_syntax.?.len..]);
+			try result.cat_list.data.append(gpa, cat_dupe);
 			cats.to += 1;
 		}
 		// Comment marker (like :)

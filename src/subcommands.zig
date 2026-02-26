@@ -85,7 +85,7 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
-		var catfile = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
+		var catfile = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
 		defer catfile.close();
 
 		var buf: [1024]u8 = undefined;
@@ -127,7 +127,7 @@ pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !voi
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
-		var catfile = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
+		var catfile = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
 		defer catfile.close();
 
 		var buf: [1024]u8 = undefined;
@@ -211,7 +211,7 @@ pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.data.items) |path| {
-		var file = std.fs.openFileAbsolute(path, .{ .mode = .read_only }) catch |err| {
+		var file = std.fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
 			meta.errln("Failed to open the file '{s}'", .{path});
 			return err;
 		};

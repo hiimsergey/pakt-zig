@@ -44,7 +44,7 @@ pub fn appendAllCatNames(
 ) !void {
 	var it = self.dir.iterate();
 	while (try it.next()) |entry|
-		try cat_list.data.append(gpa, try meta.dup(gpa, entry.name));
+		try cat_list.data.append(gpa, try gpa.dupe(u8, entry.name));
 }
 
 /// Given a pointer to a `StringListOwned`, extend it with absolute paths of
@@ -80,7 +80,7 @@ pub fn writeFileList(
 			);
 			try file_list.data.append(gpa, cat_path);
 		} else {
-			try file_list.data.append(gpa, try meta.dup(gpa, arg));
+			try file_list.data.append(gpa, try gpa.dupe(u8, arg));
 		}
 	}
 }
