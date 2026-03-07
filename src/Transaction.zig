@@ -1,6 +1,7 @@
-//! A struct containing a list of `PackageData`s describing an entire command's Pakt
-//! transaction and a pool of all chunks of category args.
-//! You could say this is the heart of transaction-specific arg parsing.
+/// A struct containing a list of `PackageData`s describing an entire command's Pakt
+/// transaction and a pool of all chunks of category args.
+/// You could say this is the heart of transaction-specific arg parsing.
+const Self = @This();
 
 const std = @import("std");
 const meta = @import("meta.zig");
@@ -9,11 +10,9 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
-const StringListOwned = meta.StringListOwned;
-const Self = @This();
 
 data: ArrayList(PackageData),
-cat_list: StringListOwned,
+cat_list: ArrayList([]const u8),
 
 /// An index based slice description over an unrelated array. Unlike regular slices,
 /// it doesn't get invalidated if an `ArrayList` gets appended to.
@@ -51,7 +50,7 @@ pub fn init(
 
 	var result = Self{
 		.data = try ArrayList(PackageData).initCapacity(gpa, 2),
-		.cat_list = try StringListOwned.initCapacity(gpa, 2)
+		.cat_list = try ArrayList([]const u8).initCapacity(gpa, 2)
 	};
 
 	var expecting_comment = false;
@@ -65,14 +64,14 @@ pub fn init(
 			expecting_comment = false;
 		}
 		// Wildcard token (like ++)
-		else if (meta.eqlConcat(arg, &.{ config.cat_syntax.?, config.cat_syntax.? })) {
+		else if (meta.eqlConcat(arg, &.{config.cat_syntax.?, config.cat_syntax.?})) {
 			try catman.appendAllCatNames(gpa, &result.cat_list);
-			cats.to = result.cat_list.data.items.len;
+			cats.to = result.cat_list.items.len;
 		}
 		// Category token (like +)
 		else if (meta.startswith(arg, config.cat_syntax.?)) {
-			const cat_dupe = try gpa.dupe(u8, arg[config.cat_syntax.?.len..]);
-			try result.cat_list.data.append(gpa, cat_dupe);
+			const cat = arg[config.cat_syntax.?.len..];
+			try result.cat_list.append(gpa, cat);
 			cats.to += 1;
 		}
 		// Comment marker (like :)
@@ -80,15 +79,14 @@ pub fn init(
 			expecting_comment = true;
 		}
 		// Non-Pakt flag
-		else if (meta.startswith(arg, "-")) {
+		else if (arg[0] == '-') {
 			if (cmd) |c| try c.append(gpa, arg);
 		}
 		// Probably a package
 		else {
 			// A package comes after a category declaration, meaning we have
 			// to reset the temporary descriptors.
-			if (cats.to - cats.from > 0)
-				try result.updateTemporary(&pkgs, &cats);
+			if (cats.to - cats.from > 0) try result.updateTemporary(&pkgs, &cats);
 			try result.data.append(gpa, .{
 				.name = arg,
 				.cats = undefined,
@@ -119,7 +117,7 @@ pub fn deinit(self: *Self, gpa: Allocator) void {
 /// Write the situation into the involved categories' files.
 pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
-		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
+		for (pkgdata.cats.slice(self.cat_list.items)) |cat| {
 			var catfile = try catman.openCatfile(cat);
 			defer catfile.close();
 			try writePackage(&catfile, pkgdata.name, pkgdata.comment);
@@ -135,7 +133,7 @@ pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 /// Remove packages from the involved categories' files.
 pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
-		for (pkgdata.cats.slice(self.cat_list.data.items)) |cat| {
+		for (pkgdata.cats.slice(self.cat_list.items)) |cat| {
 			var catfile = try catman.openCatfile(cat);
 			defer catfile.close();
 			try deletePackage(pkgdata.name, &catfile);
@@ -149,7 +147,7 @@ pub fn delete(self: *Self, catman: *const Categories, config: *Config) !void {
 fn updateTemporary(self: *Self, pkgs: *ISlice, cats: *ISlice) !void {
 	for (pkgs.slice(self.data.items)) |*pkg| pkg.cats = cats.*;
 	pkgs.* = .{ .from = self.data.items.len, .to = 0 };
-	cats.* = .{ .from = self.cat_list.data.items.len, .to = 0 };
+	cats.* = .{ .from = self.cat_list.items.len, .to = 0 };
 }
 
 /// Write the package name and its inline comment into the given file.

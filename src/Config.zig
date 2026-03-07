@@ -85,11 +85,11 @@ pub fn getConfigPath(gpa: Allocator) ![]const u8 {
 		catch blk: {
 			const home = try std.process.getEnvVarOwned(gpa, "HOME");
 			defer gpa.free(home);
-			break :blk try std.mem.concat(gpa, u8, &.{ home, "/.config" });
+			break :blk try std.mem.concat(gpa, u8, &.{home, "/.config"});
 		};
 		defer gpa.free(config_path);
 
-		return try std.mem.concat(gpa, u8, &.{ config_path, "/pakt.json" });
+		return try std.mem.concat(gpa, u8, &.{config_path, "/pakt.json"});
 	};
 }
 

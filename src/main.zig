@@ -9,7 +9,11 @@ const Config = @import("Config.zig");
 pub fn main() u8 {
 	var aw = AllocatorWrapper.init();
 	defer aw.deinit();
-	const gpa = aw.allocator();
+	const child_allocator = aw.allocator();
+
+	var arena = std.heap.ArenaAllocator.init(child_allocator);
+	defer arena.deinit();
+	const gpa = arena.allocator();
 
 	defer {
 		meta.outflush();
@@ -17,13 +21,12 @@ pub fn main() u8 {
 	}
 
 	const config_path = Config.getConfigPath(gpa) catch return 1;
-	defer gpa.free(config_path);
 
 	var parse_result = Config.ParseResult.init(gpa, config_path) catch return 1;
-	defer parse_result.deinit(gpa);
+	// TODO NOW defer parse_result.deinit(gpa);
 
 	const args = std.process.argsAlloc(gpa) catch return 1;
-	defer std.process.argsFree(gpa, args);
+	// TODO NOW defer std.process.argsFree(gpa, args);
 
 	if (args.len == 1) {
 		parse_result.parsed_config.value.callNoArgAction(gpa) catch return 1;

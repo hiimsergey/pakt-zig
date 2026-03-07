@@ -5,7 +5,6 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
-const StringListOwned = meta.StringListOwned;
 const Transaction = @import("Transaction.zig");
 
 /// Install packages, write them into categories and/or give them inline comments.
@@ -80,11 +79,11 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
 	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
-	for (file_list.data.items) |path| {
+	for (file_list.items) |path| {
 		var catfile = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
 		defer catfile.close();
 
@@ -93,7 +92,8 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 
 		while (reader.interface.takeDelimiter('\n') catch null) |line| {
 			const uncommented = std.mem.trim(u8, blk: {
-				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse break :blk line;
+				const hash_i = std.mem.indexOfScalar(u8, line, '#') orelse
+					break :blk line;
 				break :blk line[0..hash_i];
 			}, " ");
 			try cmd.append(gpa, uncommented);
@@ -122,11 +122,11 @@ pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !voi
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
 	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
-	for (file_list.data.items) |path| {
+	for (file_list.items) |path| {
 		var catfile = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
 		defer catfile.close();
 
@@ -183,11 +183,11 @@ pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var cat_list = try StringListOwned.initCapacity(gpa, 8);
+	var cat_list = try ArrayList([]const u8).initCapacity(gpa, 8);
 	defer cat_list.deinit(gpa);
 	try catman.appendAllCatNames(gpa, &cat_list);
 
-	const string = try std.mem.join(gpa, separator, cat_list.data.items);
+	const string = try std.mem.join(gpa, separator, cat_list.items);
 	defer gpa.free(string);
 	meta.print("{s}\n", .{string});
 }
@@ -206,11 +206,11 @@ pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
 	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
-	for (file_list.data.items) |path| {
+	for (file_list.items) |path| {
 		var file = std.fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
 			meta.errln("Failed to open the file '{s}'", .{path});
 			return err;
@@ -276,12 +276,12 @@ pub fn edit(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var file_list = try StringListOwned.initCapacity(gpa, 2);
+	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
 	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	try cmd.append(gpa, config.editor.?);
-	try cmd.appendSlice(gpa, file_list.data.items);
+	try cmd.appendSlice(gpa, file_list.items);
 
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = child.spawnAndWait() catch |err| {

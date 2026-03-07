@@ -3,23 +3,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
-/// A wrapper over `ArrayList([]const u8)` signaling that the strings are owned
-/// and should be freed by us.
-pub const StringListOwned = struct {
-	data: ArrayList([]const u8),
-
-	pub fn initCapacity(gpa: Allocator, n: usize) Allocator.Error!StringListOwned {
-		return .{
-			.data = try ArrayList([]const u8).initCapacity(gpa, n)
-		};
-	}
-
-	pub fn deinit(self: *StringListOwned, gpa: Allocator) void {
-		for (self.data.items) |item| gpa.free(item);
-		self.data.deinit(gpa);
-	}
-};
-
 /// Like `std.mem.eql` but for strings and shorter.
 pub fn eql(a: []const u8, b: []const u8) bool {
 	return std.mem.eql(u8, a, b);
