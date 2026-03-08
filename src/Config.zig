@@ -99,7 +99,7 @@ pub fn callNoArgAction(self: *Config, gpa: Allocator) !void {
 	const term = child.spawnAndWait() catch {
 		const command = try std.mem.concat(gpa, u8, self.no_arg_action.?);
 		defer gpa.free(command);
-		meta.errln("Failed to run the no arg action: '{s}'", .{command});
+		meta.errln("Failed to run the no arg action '{s}'!", .{command});
 		return error.Generic;
 	};
 	if (term.Exited != 0) return error.Generic;

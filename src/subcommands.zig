@@ -212,7 +212,7 @@ pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 
 	for (file_list.items) |path| {
 		var file = std.fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
-			meta.errln("Failed to open the file '{s}'", .{path});
+			meta.errln("Failed to open the file '{s}'!", .{path});
 			return err;
 		};
 		defer file.close();
@@ -286,7 +286,7 @@ pub fn edit(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = child.spawnAndWait() catch |err| {
 		if (err == error.FileNotFound)
-			meta.errln("Unkown editor: '{s}'", .{config.editor.?});
+			meta.errln("Unkown editor: '{s}'!", .{config.editor.?});
 		return err;
 	};
 	if (term.Exited != 0) return error.Generic;
@@ -299,7 +299,7 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 
 	for (args[2..]) |arg| {
 		if (!meta.startswith(arg, config.cat_syntax.?)) {
-			meta.errln("\nRegular files are like '{s}' are not supported!\n", .{arg});
+			meta.errln("Regular files like '{s}' are not supported!", .{arg});
 			return error.Generic;
 		}
 		meta.print(" {s}", .{arg});
@@ -316,13 +316,13 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var err: ?anyerror = null;
+	var err: anyerror!void = {};
 	for (args[2..]) |arg| catman.dir.deleteFile(arg[config.cat_syntax.?.len..])
 	catch |e| {
-		meta.errln("Failed to delete +{s}", .{arg});
+		meta.errln("Failed to delete {s}!", .{arg});
 		err = e;
 	};
-	return err orelse {};
+	return err;
 }
 
 /// Perform a regular package manager operation without Pakt interpreting anything.
@@ -337,7 +337,7 @@ pub fn native(gpa: Allocator, config: *const Config, args: []const [:0]u8) !void
 	const term = child.spawnAndWait() catch {
 		const command = try std.mem.concat(gpa, u8, cmd.items);
 		defer gpa.free(command);
-		meta.errln("Failed to spawn the command '{s}'", .{command});
+		meta.errln("Failed to spawn the command '{s}'!", .{command});
 		return error.Generic;
 	};
 	if (term.Exited != 0) return error.Generic;
