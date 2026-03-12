@@ -21,12 +21,8 @@ pub fn main() u8 {
 	}
 
 	const config_path = Config.getConfigPath(gpa) catch return 1;
-
 	var parse_result = Config.ParseResult.init(gpa, config_path) catch return 1;
-	// TODO NOW defer parse_result.deinit(gpa);
-
 	const args = std.process.argsAlloc(gpa) catch return 1;
-	// TODO NOW defer std.process.argsFree(gpa, args);
 
 	if (args.len == 1) {
 		parse_result.parsed_config.value.callNoArgAction(gpa) catch return 1;

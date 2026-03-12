@@ -33,9 +33,15 @@ pub fn print(comptime fmt: []const u8, args: anytype) void {
 	stdout.interface.print(fmt, args) catch {};
 }
 
+/// Buffered stderr printing.
+pub fn err(comptime fmt: []const u8, args: anytype) void {
+	stderr.interface.print("\x1b[31;1mpakt: ", .{}) catch {};
+	stderr.interface.print(fmt, args) catch {};
+}
+
 /// Buffered stderr printing, with a trailing newline.
 pub fn errln(comptime fmt: []const u8, args: anytype) void {
-	stderr.interface.print("\x1b[31mpakt: ", .{}) catch {};
+	stderr.interface.print("\x1b[31;1mpakt: ", .{}) catch {};
 	stderr.interface.print(fmt ++ "\n", args) catch {};
 }
 

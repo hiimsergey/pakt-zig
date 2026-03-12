@@ -187,9 +187,9 @@ pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	defer cat_list.deinit(gpa);
 	try catman.appendAllCatNames(gpa, &cat_list);
 
-	const string = try std.mem.join(gpa, separator, cat_list.items);
-	defer gpa.free(string);
-	meta.print("{s}\n", .{string});
+	for (cat_list.items[0..cat_list.items.len - 1]) |item|
+		meta.print("{s}{s}", .{item, separator});
+	meta.print("{s}\n", .{cat_list.items[cat_list.items.len - 1]});
 }
 
 /// List the package names written in the given categories or custom files,
@@ -335,9 +335,10 @@ pub fn native(gpa: Allocator, config: *const Config, args: []const [:0]u8) !void
 
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = child.spawnAndWait() catch {
-		const command = try std.mem.concat(gpa, u8, cmd.items);
-		defer gpa.free(command);
-		meta.errln("Failed to spawn the command '{s}'!", .{command});
+		meta.err("Failed to spawn the command '", .{});
+		for (cmd.items[0..cmd.items.len - 1]) |item| meta.err("{s}", .{item});
+		meta.errln("{s}'!", .{cmd.items[cmd.items.len - 1]});
+
 		return error.Generic;
 	};
 	if (term.Exited != 0) return error.Generic;
