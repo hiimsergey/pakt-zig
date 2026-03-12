@@ -6,9 +6,9 @@ A recreational rewrite of our Bash script [Pakt](https://github.com/mminl-de/pak
 {
 	"cat_path": null,
 	"editor": "nano",
-	"package_manager": !!!,
-	"install_args": !!!,
-	"uninstall_args": !!!,
+	"package_manager": /* no default */,
+	"install_args": /* no default */,
+	"uninstall_args": /* no default */,
 	"cat_syntax": "+",
 	"inline_comment_syntax": ":",
 	"no_arg_action": ["pakt", "help"],
