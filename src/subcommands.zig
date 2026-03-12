@@ -10,15 +10,11 @@ const Transaction = @import("Transaction.zig");
 /// Install packages, write them into categories and/or give them inline comments.
 pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
-	defer cmd.deinit(gpa);
 	try cmd.appendSlice(gpa, config.package_manager);
 	try cmd.appendSlice(gpa, config.install_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
-
-	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
-	defer transaction.deinit(gpa);
 
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
@@ -31,21 +27,18 @@ pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	}
 
 	// The categorizing in question
+	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
 	try transaction.write(&catman, config);
 }
 
 /// Uninstall packages and/or remove them from categories.
 pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
-	defer cmd.deinit(gpa);
 	try cmd.appendSlice(gpa, config.package_manager);
 	try cmd.appendSlice(gpa, config.uninstall_args);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
-
-	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
-	defer transaction.deinit(gpa);
 
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
@@ -58,6 +51,7 @@ pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	}
 
 	// The decategorizing in question
+	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
 	try transaction.delete(&catman, config);
 }
 
@@ -72,7 +66,6 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 	}
 
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
-	defer cmd.deinit(gpa);
 	try cmd.appendSlice(gpa, config.package_manager);
 	try cmd.appendSlice(gpa, config.install_args);
 
@@ -80,7 +73,6 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 	defer catman.deinit();
 
 	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
-	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.items) |path| {
@@ -115,7 +107,6 @@ pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !voi
 	}
 
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
-	defer cmd.deinit(gpa);
 	try cmd.appendSlice(gpa, config.package_manager);
 	try cmd.appendSlice(gpa, config.uninstall_args);
 
@@ -123,7 +114,6 @@ pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !voi
 	defer catman.deinit();
 
 	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
-	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.items) |path| {
@@ -152,10 +142,8 @@ pub fn dryInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var transaction = try Transaction.init(gpa, args, &catman, config, null);
-	defer transaction.deinit(gpa);
-
 	// The categorizing in question
+	var transaction = try Transaction.init(gpa, args, &catman, config, null);
 	try transaction.write(&catman, config);
 }
 
@@ -164,10 +152,8 @@ pub fn dryUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
-	var transaction = try Transaction.init(gpa, args, &catman, config, null);
-	defer transaction.deinit(gpa);
-
 	// The decategorizing in question
+	var transaction = try Transaction.init(gpa, args, &catman, config, null);
 	try transaction.delete(&catman, config);
 }
 
@@ -184,7 +170,6 @@ pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	defer catman.deinit();
 
 	var cat_list = try ArrayList([]const u8).initCapacity(gpa, 8);
-	defer cat_list.deinit(gpa);
 	try catman.appendAllCatNames(gpa, &cat_list);
 
 	for (cat_list.items[0..cat_list.items.len - 1]) |item|
@@ -207,7 +192,6 @@ pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	defer catman.deinit();
 
 	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
-	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	for (file_list.items) |path| {
@@ -271,13 +255,11 @@ pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 /// Open category files or custom ones in your editor of choice.
 pub fn edit(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 3);
-	defer cmd.deinit(gpa);
 
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
 	var file_list = try ArrayList([]const u8).initCapacity(gpa, 2);
-	defer file_list.deinit(gpa);
 	try catman.writeFileList(gpa, args[2..], config, &file_list);
 
 	try cmd.append(gpa, config.editor.?);
@@ -294,7 +276,7 @@ pub fn edit(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 
 /// Delete one or more category files.
 pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
-	var stdin_buf: [128]u8 = undefined;
+	var stdin_buf: [4]u8 = undefined;
 	var stdin = std.fs.File.stdin().reader(&stdin_buf);
 
 	for (args[2..]) |arg| {
@@ -319,7 +301,8 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	var err: anyerror!void = {};
 	for (args[2..]) |arg| catman.dir.deleteFile(arg[config.cat_syntax.?.len..])
 	catch |e| {
-		meta.errln("Failed to delete {s}!", .{arg});
+		if (e == error.FileNotFound) meta.errln("No such category {s}!", .{arg})
+		else meta.errln("Failed to delete {s}!", .{arg});
 		err = e;
 	};
 	return err;
@@ -328,15 +311,13 @@ pub fn purge(_: Allocator, config: *const Config, args: []const [:0]u8) !void {
 /// Perform a regular package manager operation without Pakt interpreting anything.
 pub fn native(gpa: Allocator, config: *const Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 3);
-	defer cmd.deinit(gpa);
-
 	try cmd.appendSlice(gpa, config.package_manager);
 	try cmd.appendSlice(gpa, args[2..]);
 
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = child.spawnAndWait() catch {
-		meta.err("Failed to spawn the command '", .{});
-		for (cmd.items[0..cmd.items.len - 1]) |item| meta.err("{s}", .{item});
+		meta.errprint("Failed to spawn the command '", .{});
+		for (cmd.items[0..cmd.items.len - 1]) |item| meta.errprint("{s} ", .{item});
 		meta.errln("{s}'!", .{cmd.items[cmd.items.len - 1]});
 
 		return error.Generic;

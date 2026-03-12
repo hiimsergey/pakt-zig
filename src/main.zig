@@ -5,6 +5,7 @@ const sc = @import("subcommands.zig");
 const Allocator = std.mem.Allocator;
 const AllocatorWrapper = @import("AllocatorWrapper.zig");
 const Config = @import("Config.zig");
+const Parsed = std.json.Parsed;
 
 pub fn main() u8 {
 	var aw = AllocatorWrapper.init();
@@ -21,11 +22,11 @@ pub fn main() u8 {
 	}
 
 	const config_path = Config.getConfigPath(gpa) catch return 1;
-	var parse_result = Config.ParseResult.init(gpa, config_path) catch return 1;
+	var parsed_config: Parsed(Config) = Config.parse(gpa, config_path) catch return 1;
 	const args = std.process.argsAlloc(gpa) catch return 1;
 
 	if (args.len == 1) {
-		parse_result.parsed_config.value.callNoArgAction(gpa) catch return 1;
+		parsed_config.value.callNoArgAction(gpa) catch return 1;
 		return 0;
 	}
 
@@ -53,7 +54,7 @@ pub fn main() u8 {
 		.{ "native",         "n",  sc.native        }
 	}) |subcmd| {
 		if (!meta.eql(args[1], subcmd.@"0") and !meta.eql(args[1], subcmd.@"1")) continue;
-		subcmd.@"2"(gpa, &parse_result.parsed_config.value, args) catch return 1;
+		subcmd.@"2"(gpa, &parsed_config.value, args) catch return 1;
 		break;
 	} else {
 		meta.errln(
