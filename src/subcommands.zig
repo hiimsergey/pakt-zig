@@ -16,6 +16,8 @@ pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
+	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
+
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) {
@@ -27,7 +29,6 @@ pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	}
 
 	// The categorizing in question
-	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
 	try transaction.write(&catman, config);
 }
 
@@ -40,6 +41,8 @@ pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var catman = try Categories.init(config);
 	defer catman.deinit();
 
+	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
+
 	var child = std.process.Child.init(cmd.items, gpa);
 	const term = try child.spawnAndWait();
 	if (term.Exited != 0) {
@@ -51,7 +54,6 @@ pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	}
 
 	// The decategorizing in question
-	var transaction = try Transaction.init(gpa, args, &catman, config, &cmd);
 	try transaction.delete(&catman, config);
 }
 

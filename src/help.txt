@@ -47,6 +47,6 @@ Configuration:
     {s}
 
 About:
-    v2.0.6  GPL-3.0  https://github.com/hiimsergey/pakt-zig
+    v2.0.7  GPL-3.0  https://github.com/hiimsergey/pakt-zig
     A Zig rewrite of the POSIX shell script by Sergey Lavrent and MrMineDe
     https://github.com/mminl-de/pakt

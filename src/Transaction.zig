@@ -109,11 +109,6 @@ pub fn init(
 	return result;
 }
 
-pub fn deinit(self: *Self, gpa: Allocator) void {
-	self.data.deinit(gpa);
-	self.cat_list.deinit(gpa);
-}
-
 /// Write the situation into the involved categories' files.
 pub fn write(self: *Self, catman: *const Categories, config: *Config) !void {
 	for (self.data.items) |pkgdata| {
