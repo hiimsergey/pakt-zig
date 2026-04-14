@@ -8,6 +8,7 @@ const Config = @import("Config.zig");
 const Transaction = @import("Transaction.zig");
 
 pub const see_help_text = "See `pakt help` for correct usage!";
+pub const missing_items_text = "Missing category names/file paths!";
 
 /// Install packages, write them into categories and/or give them inline comments.
 pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
@@ -62,7 +63,7 @@ pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 /// Bulk-install packages from category files or custom files.
 pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
-		meta.errln("Missing category names/file paths!", .{});
+		meta.errln(missing_items_text, .{});
 		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
@@ -101,7 +102,7 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 
 pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
-		meta.errln("Missing category names/file paths!", .{});
+		meta.errln(missing_items_text, .{});
 		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
@@ -182,7 +183,7 @@ pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 /// without comments.
 pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
-		meta.errln("Missing category names/file paths!", .{});
+		meta.errln(missing_items_text, .{});
 		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
