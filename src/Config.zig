@@ -5,19 +5,18 @@ const Allocator = std.mem.Allocator;
 const Parsed = std.json.Parsed;
 const Self = @This();
 
-cat_path: ?[]const u8 = null,
-editor: ?[]const u8 = "nano",
 package_manager: []const []const u8,
 install_args: []const []const u8,
 uninstall_args: []const []const u8,
+cat_path: ?[]const u8 = null,
+editor: ?[]const u8 = "nano",
 cat_syntax: ?[]const u8 = "+",
 inline_comment_syntax: ?[]const u8 = ":",
 no_arg_action: ?[]const []const u8 = &.{"pakt", "help"},
 default_cats: ?[]const []const u8 = &.{},
 remove_empty_cats: ?bool = true,
 
-const config_reference_text =
-	"See https://github.com/hiimsergey/pakt-zig for a correct config.";
+const config_help_text = "See `pakt help-config` to learn about the config.";
 
 /// Parse the JSON file at `config_path` and instantiate this result struct.
 pub fn parse(gpa: Allocator, config_path: []const u8) !Parsed(Self) {
@@ -29,7 +28,7 @@ pub fn parse(gpa: Allocator, config_path: []const u8) !Parsed(Self) {
 		switch (err) {
 			std.fs.File.OpenError.FileNotFound => {
 				meta.errln("Config file at {s} not found!", .{config_path});
-				meta.errln(config_reference_text, .{});
+				meta.errln(config_help_text, .{});
 			},
 			else => meta.errln("Couldn't open config file!", .{})
 		}
@@ -43,7 +42,7 @@ pub fn parse(gpa: Allocator, config_path: []const u8) !Parsed(Self) {
 		switch (err) {
 			error.UnexpectedToken => {
 				meta.errln("Failed to parse config! Unexpected token!", .{});
-				meta.errln(config_reference_text, .{});
+				meta.errln(config_help_text, .{});
 			},
 			else => meta.errln(
 				\\Failed to parse config!

@@ -21,17 +21,28 @@ pub fn main() u8 {
 		meta.errflush();
 	}
 
-	const config_path = Config.getConfigPath(gpa) catch return 1;
-	var parsed_config: Parsed(Config) = Config.parse(gpa, config_path) catch return 1;
 	const args = std.process.argsAlloc(gpa) catch return 1;
+	const config_path = Config.getConfigPath(gpa) catch return 1;
+
+	if (args.len > 1) {
+		if (meta.eql(args[1], "--help") or
+			meta.eql(args[1], "help") or
+			meta.eql(args[1], "h"))
+		{
+			sc.help(config_path);
+			return 0;
+		}
+
+		if (meta.eql(args[1], "help-config") or meta.eql(args[1], "hc")) {
+			sc.helpConfig();
+			return 0;
+		}
+	}
+
+	var parsed_config: Parsed(Config) = Config.parse(gpa, config_path) catch return 1;
 
 	if (args.len == 1) {
 		parsed_config.value.callNoArgAction(gpa) catch return 1;
-		return 0;
-	}
-
-	if (meta.eql(args[1], "help") or meta.eql(args[1], "h")) {
-		sc.help(config_path);
 		return 0;
 	}
 
@@ -39,7 +50,7 @@ pub fn main() u8 {
 		[]const u8,
 		[]const u8,
 		*const fn (Allocator, *Config, []const [:0]u8) anyerror!void
-	}{
+	} {
 		.{ "install",        "i",  sc.install       },
 		.{ "uninstall",      "u",  sc.uninstall     },
 		.{ "sync-install",   "si", sc.syncInstall   },
@@ -57,10 +68,8 @@ pub fn main() u8 {
 		subcmd.@"2"(gpa, &parsed_config.value, args) catch return 1;
 		break;
 	} else {
-		meta.errln(
-			"Invalid subcommand '{s}'!\nSee 'pakt help' for available options!",
-			.{args[1]}
-		);
+		meta.errln("Invalid subcommand '{s}'!", .{args[1]});
+		meta.errln(sc.see_help_text, .{});
 		return 2;
 	}
 

@@ -26,10 +26,10 @@ Usage:
         list all user-defined categories separated separated by an optional string
 
     pakt c(at)              (file | +cat)...
-        list all packages in the given categories
+        list all packages in given categories
 
     pakt f(ind)             pkg...
-        list categories the given packages are in
+        list categories given packages are in
 
     pakt e(dit)             (file | +cat)...
         edit category or arbitary files manually
@@ -43,10 +43,13 @@ Usage:
     pakt h(elp)
         print this message
 
+    pakt h(elp-)c(onfig)
+        view help about config file
+
 Configuration:
     {s}
 
 About:
-    v2.0.7  GPL-3.0  https://github.com/hiimsergey/pakt-zig
+    v2.1.0  GPL-3.0  https://github.com/hiimsergey/pakt-zig
     A Zig rewrite of the POSIX shell script by Sergey Lavrent and MrMineDe
     https://github.com/mminl-de/pakt

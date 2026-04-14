@@ -1,0 +1,39 @@
+Config path: (sorted in descending priority)
+    $PAKT_CONF_PATH/pakt.json
+    $XDG_CONFIG_HOME/pakt.json
+    $HOME/.config/pakt.json
+
+Config options:
+    package_manager       (string list)
+        Underlying package manager
+        Needs to be given!
+
+    install_args          (string list)
+        Package manager arguments used by `pakt install`
+        Needs to be given!
+
+    uninstall_args        (string list)
+        Package manager arguments used by `pakt uninstall`
+        Needs to be given!
+
+    cat_path              (string)
+        Where category files are stored in plain text
+        If value is null, pakt uses either `$XDG_DATA_HOME/pakt/` or `~/.local/share/pakt/`
+
+    editor                (string)
+        Which editor is called if you want to edit category files from pakt manually
+
+    cat_syntax            (string)
+        Characters used as prefix for category names in arguments
+
+    inline_comment_syntax (string)
+        Characters marking that next argument is a package comment
+
+    no_arg_action         (string list)
+        Command triggered by running `pakt`
+
+    default_cats          (string list)
+        Categories that every new package is put into implicitly
+
+    remove_empty_cats     (bool)
+        Whether empty category files should be removed

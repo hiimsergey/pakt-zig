@@ -11,6 +11,8 @@ const ArrayList = std.ArrayList;
 const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
 
+const see_help_text = @import("subcommands.zig").see_help_text;
+
 data: ArrayList(PackageData),
 cat_list: ArrayList([]const u8),
 
@@ -44,7 +46,8 @@ pub fn init(
 	cmd: ?*ArrayList([]const u8)
 ) !Self {
 	if (args.len < 3) {
-		meta.errln("Missing package names!\nSee 'pakt help' for correct usage!", .{});
+		meta.errln("Missing package names!", .{});
+		meta.errln(see_help_text, .{});
 		return error.ExpectedArgs;
 	}
 
@@ -98,10 +101,8 @@ pub fn init(
 	}
 
 	if (expecting_comment) {
-		meta.errln(
-			"Missing comment after the '{s}'!\nSee 'pakt help' for correct usage!",
-			.{config.inline_comment_syntax.?}
-		);
+		meta.errln("Missing comment after the '{s}'!", .{config.inline_comment_syntax.?});
+		meta.errln(see_help_text, .{});
 		return error.ExpectedComment;
 	}
 

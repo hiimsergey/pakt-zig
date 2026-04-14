@@ -7,6 +7,8 @@ const Categories = @import("Categories.zig");
 const Config = @import("Config.zig");
 const Transaction = @import("Transaction.zig");
 
+pub const see_help_text = "See `pakt help` for correct usage!";
+
 /// Install packages, write them into categories and/or give them inline comments.
 pub fn install(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	var cmd = try ArrayList([]const u8).initCapacity(gpa, 4);
@@ -60,10 +62,8 @@ pub fn uninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 /// Bulk-install packages from category files or custom files.
 pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
-		meta.errln(
-			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
-			.{}
-		);
+		meta.errln("Missing category names/file paths!", .{});
+		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
 
@@ -101,10 +101,8 @@ pub fn syncInstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void 
 
 pub fn syncUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
-		meta.errln(
-			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
-			.{}
-		);
+		meta.errln("Missing category names/file paths!", .{});
+		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
 
@@ -163,7 +161,8 @@ pub fn dryUninstall(gpa: Allocator, config: *Config, args: []const [:0]u8) !void
 /// the package names.
 pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len > 3) {
-		meta.errln("Invalid args!\nSee 'pakt help' for correct usage!", .{});
+		meta.errln("Invalid args!", .{});
+		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
 	const separator: []const u8 = if (args.len == 2) "  " else args[2];
@@ -183,10 +182,8 @@ pub fn list(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 /// without comments.
 pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len == 2) {
-		meta.errln(
-			"Missing category names/file paths!\nSee 'pakt help' for correct usage!",
-			.{}
-		);
+		meta.errln("Missing category names/file paths!", .{});
+		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
 
@@ -219,7 +216,8 @@ pub fn cat(gpa: Allocator, config: *Config, args: []const [:0]u8) !void {
 /// List the names of the categories containing at least one of the given package names.
 pub fn find(_: Allocator, config: *Config, args: []const [:0]u8) !void {
 	if (args.len < 3) {
-		meta.errln("Missing package names!\nSee 'pakt help' for correct usage!", .{});
+		meta.errln("Missing package names!", .{});
+		meta.errln(see_help_text, .{});
 		return error.Generic;
 	}
 
@@ -330,4 +328,9 @@ pub fn native(gpa: Allocator, config: *const Config, args: []const [:0]u8) !void
 /// Self-explanatory, I guess.
 pub fn help(config_path: []const u8) void {
 	meta.print(@embedFile("help.txt"), .{config_path});
+}
+
+/// Self-explanatory, I guess.
+pub fn helpConfig() void {
+	meta.print(@embedFile("help-config.txt"), .{});
 }
