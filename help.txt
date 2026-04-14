@@ -1,4 +1,4 @@
-pakt – a package manager wrapper with support for categorizing
+pakt - a package manager wrapper with support for categorizing
 
 Usage:
     pakt

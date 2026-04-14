@@ -1,4 +1,4 @@
-Config path: (sorted in descending priority)
+Config path: (sorted by descending priority)
     $PAKT_CONF_PATH/pakt.json
     $XDG_CONFIG_HOME/pakt.json
     $HOME/.config/pakt.json
