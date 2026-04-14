@@ -40,7 +40,7 @@ pub fn errprint(comptime fmt: []const u8, args: anytype) void {
 
 /// Buffered stderr printing, with a trailing newline.
 pub fn errln(comptime fmt: []const u8, args: anytype) void {
-	stderr.interface.print("\x1b[31;1mpakt: ", .{}) catch {};
+	stderr.interface.print("\x1b[31;1mpakt:\x1b[0m ", .{}) catch {};
 	stderr.interface.print(fmt ++ "\n", args) catch {};
 }
 

@@ -66,3 +66,6 @@ pub fn main() u8 {
 
 	return 0;
 }
+
+// TODO --quiet flag (or something like that) for pakt cat
+// ^ if left out, shows comments
